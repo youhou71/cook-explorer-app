@@ -5,26 +5,49 @@
     <div class="edit-layout">
       <!-- Éditeur -->
       <div class="editor-panel">
-        <div class="field">
-          <label>Type de plat</label>
-          <div class="category-picker">
-            <select v-model="categoryChoice" class="category-select">
-              <option value="">— Sans catégorie —</option>
-              <option v-for="cat in existingCategories" :key="cat" :value="cat">{{ cat }}</option>
-              <option value="__new__">+ Nouveau type…</option>
-            </select>
-            <input
-              v-if="categoryChoice === '__new__'"
-              v-model="newCategory"
-              placeholder="ex : desserts"
-              class="category-new-input"
-            />
+        <div class="field-row">
+          <div class="field">
+            <label>Type de plat</label>
+            <div class="category-picker">
+              <select v-model="categoryChoice" class="category-select">
+                <option value="">— Sans catégorie —</option>
+                <option v-for="cat in existingCategories" :key="cat" :value="cat">{{ cat }}</option>
+                <option value="__new__">+ Nouveau type…</option>
+              </select>
+              <input
+                v-if="categoryChoice === '__new__'"
+                v-model="newCategory"
+                placeholder="ex : desserts"
+                class="category-new-input"
+              />
+            </div>
+          </div>
+
+          <!-- Origine géographique -->
+          <div class="field">
+            <label>Origine</label>
+            <div class="origin-picker">
+              <select v-model="originSelect" class="origin-select">
+                <option value="">— Aucune —</option>
+                <option v-for="c in ORIGIN_COUNTRIES" :key="c.value" :value="c.value">
+                  {{ c.flag }} {{ c.label }}
+                </option>
+                <option value="__custom__">Autre…</option>
+              </select>
+              <input
+                v-if="showCustomOrigin"
+                :value="customOriginInput"
+                @input="onCustomOriginInput"
+                placeholder="ex : cambodgien"
+                class="origin-custom-input"
+              />
+            </div>
           </div>
         </div>
 
         <div class="field">
           <label>Nom de la recette</label>
-          <input v-model="recipeName" placeholder="tarte-citron" />
+          <input v-model="recipeName" placeholder="Tarte au citron meringuée" />
           <p class="field-hint" v-if="targetPath">
             <template v-if="pathWillChange">
               <span class="field-hint-move">↪ Déplacement :</span>
@@ -63,6 +86,24 @@
               class="image-input"
               @change="onFileChange"
             />
+          </div>
+        </div>
+
+        <!-- Saisons -->
+        <div class="field">
+          <label>Saisons</label>
+          <div class="season-pills">
+            <button
+              v-for="s in SEASONS"
+              :key="s.value"
+              type="button"
+              class="season-pill"
+              :class="{ 'season-pill--active': seasonsValue.includes(s.value) }"
+              @click="toggleSeason(s.value)"
+            >
+              <span class="season-pill-icon">{{ s.icon }}</span>
+              {{ s.label }}
+            </button>
           </div>
         </div>
 
@@ -111,6 +152,16 @@ Faire revenir @oignons{2} dans @huile d'olive{2%cl} pendant ~{10%min}."
             </span>
             <span v-if="previewSummary.totalTime" class="preview-badge preview-badge--muted">
               ⏱ Total {{ previewSummary.totalTime }}
+            </span>
+            <span v-if="previewSummary.origin" class="preview-badge preview-badge--plum">
+              {{ getOriginMeta(previewSummary.origin).flag }} {{ getOriginMeta(previewSummary.origin).label }}
+            </span>
+            <span
+              v-for="s in previewSummary.seasons"
+              :key="s"
+              class="preview-badge preview-badge--sky"
+            >
+              {{ getSeasonMeta(s).icon }} {{ getSeasonMeta(s).label }}
             </span>
           </div>
 
@@ -171,7 +222,16 @@ import { useCooklang } from '@/composables/useCooklang'
 import type { CooklangRecipe } from '@/types'
 import { useDebounceFn } from '@vueuse/core'
 import { compareCategories } from '@/utils/categories'
-import { upsertRecipeDates } from '@/utils/frontmatter'
+import { upsertRecipeDates, upsertTags, upsertTitle, readTags, readTitle } from '@/utils/frontmatter'
+import { slugify } from '@/utils/slug'
+import {
+  ORIGIN_COUNTRIES,
+  SEASONS,
+  splitTags,
+  buildTags,
+  getOriginMeta,
+  getSeasonMeta
+} from '@/utils/taxonomies'
 
 const route = useRoute()
 const router = useRouter()
@@ -192,6 +252,14 @@ const saving = ref(false)
 const saveError = ref<string | null>(null)
 const parsed = ref<CooklangRecipe | null>(null)
 
+/**
+ * Flag pour ne pas propager `recipeName` → frontmatter pendant la phase de
+ * pré-remplissage initial (chargement d'une recette existante). Sans ce flag,
+ * le watch écraserait le frontmatter d'origine avec une version re-sérialisée
+ * avant même que l'utilisateur n'ait touché à quoi que ce soit.
+ */
+const initializing = ref(true)
+
 const previewSummary = computed(() => parsed.value ? getSummary(parsed.value) : null)
 
 /** Sections avec au moins 1 ingrédient (panneau ingrédients du preview) */
@@ -209,14 +277,14 @@ const existingCategories = computed(() => {
   return [...set].sort(compareCategories)
 })
 
-/** Chemin final construit depuis catégorie + nom de recette */
+/** Chemin final construit depuis catégorie + nom de recette (slugifié) */
 const targetPath = computed(() => {
   const cat = categoryChoice.value === '__new__'
-    ? newCategory.value.trim()
+    ? slugify(newCategory.value.trim())
     : categoryChoice.value
-  const name = recipeName.value.trim()
-  if (!name) return ''
-  const fileName = name.endsWith('.cook') ? name : name + '.cook'
+  const slug = slugify(recipeName.value)
+  if (!slug) return ''
+  const fileName = slug + '.cook'
   return cat ? `${cat}/${fileName}` : fileName
 })
 
@@ -260,6 +328,101 @@ function removeImage() {
   if (existingImagePath.value) imageMarkedForRemoval.value = true
 }
 
+// ── Taxonomies : origine pays + saisons ──
+// Les 2 valeurs sont stockées dans la liste `tags` du frontmatter, préfixées
+// par `origine:` / `saison:`. On les manipule via des computed r/w dont la
+// source de vérité reste le `content` (le textarea).
+//
+// Approche « source de vérité = textarea » : éviter les boucles watch↔watch en
+// dérivant toujours l'état des contrôles depuis le content, et en réécrivant
+// le content sur chaque mutation utilisateur.
+
+/** Tags bruts actuels (incluant les préfixés) lus depuis le frontmatter */
+const currentTags = computed(() => readTags(content.value))
+
+/** Origine actuelle (null si absente), sans préfixe */
+const originValue = computed<string | null>({
+  get() {
+    return splitTags(currentTags.value).origin
+  },
+  set(next: string | null) {
+    const { seasons: currSeasons, free } = splitTags(currentTags.value)
+    const nextTags = buildTags(free, next && next.trim() ? next.trim().toLowerCase() : null, currSeasons)
+    content.value = upsertTags(content.value, nextTags)
+  }
+})
+
+/** Saisons actuelles, sans préfixe */
+const seasonsValue = computed<string[]>({
+  get() {
+    return splitTags(currentTags.value).seasons
+  },
+  set(next: string[]) {
+    const { origin: currOrigin, free } = splitTags(currentTags.value)
+    content.value = upsertTags(content.value, buildTags(free, currOrigin, next))
+  }
+})
+
+/** Vrai si une origine est présente ET n'appartient pas à la liste prédéfinie */
+function isCustomOrigin(value: string | null): boolean {
+  if (!value) return false
+  return !ORIGIN_COUNTRIES.some(c => c.value === value)
+}
+
+/** État UI : afficher l'input texte pour saisie libre d'une origine */
+const showCustomOrigin = ref(false)
+/** Valeur saisie dans l'input custom (miroir local pour feedback immédiat) */
+const customOriginInput = ref('')
+
+// Synchroniser l'état UI avec la valeur actuelle du frontmatter
+watch(originValue, (val) => {
+  if (val && isCustomOrigin(val)) {
+    showCustomOrigin.value = true
+    customOriginInput.value = val
+  }
+}, { immediate: true })
+
+/** Valeur bindée au <select> — gère les 3 états : vide, prédéfini, custom */
+const originSelect = computed({
+  get(): string {
+    if (showCustomOrigin.value) return '__custom__'
+    return originValue.value ?? ''
+  },
+  set(v: string) {
+    if (v === '__custom__') {
+      // Basculer en mode saisie libre — on ne touche pas originValue tant
+      // que rien n'est entré dans l'input
+      showCustomOrigin.value = true
+      customOriginInput.value = originValue.value ?? ''
+    } else {
+      showCustomOrigin.value = false
+      customOriginInput.value = ''
+      originValue.value = v || null
+    }
+  }
+})
+
+function onCustomOriginInput(e: Event) {
+  const v = (e.target as HTMLInputElement).value
+  customOriginInput.value = v
+  originValue.value = v.trim() || null
+}
+
+function toggleSeason(value: string) {
+  const current = seasonsValue.value
+  seasonsValue.value = current.includes(value)
+    ? current.filter(s => s !== value)
+    : [...current, value]
+}
+
+// Propage le « Nom de la recette » → clé `title:` du frontmatter YAML.
+// Le nom humain (avec accents, espaces) reste dans le frontmatter ; le nom
+// de fichier sera slugifié au moment de construire `targetPath`.
+watch(recipeName, (name) => {
+  if (initializing.value) return
+  content.value = upsertTitle(content.value, name)
+})
+
 // Parse en temps réel avec debounce
 const debouncedParse = useDebounceFn(() => {
   try {
@@ -275,16 +438,13 @@ onMounted(async () => {
 
   if (!isNew.value) {
     try {
-      // Pré-remplir catégorie + nom depuis le path actuel
+      // Pré-remplir la catégorie depuis le path actuel
       const currentPath = path.value
       const slashIdx = currentPath.indexOf('/')
-      if (slashIdx > 0) {
-        categoryChoice.value = currentPath.substring(0, slashIdx)
-        recipeName.value = currentPath.substring(slashIdx + 1).replace(/\.cook$/, '')
-      } else {
-        categoryChoice.value = ''
-        recipeName.value = currentPath.replace(/\.cook$/, '')
-      }
+      const fallbackName = slashIdx > 0
+        ? currentPath.substring(slashIdx + 1).replace(/\.cook$/, '')
+        : currentPath.replace(/\.cook$/, '')
+      categoryChoice.value = slashIdx > 0 ? currentPath.substring(0, slashIdx) : ''
 
       const cached = recipesStore.getByPath(currentPath)
       if (cached?.content) {
@@ -295,6 +455,11 @@ onMounted(async () => {
         content.value = result.content
         sha.value = result.sha
       }
+
+      // Préférer le titre du frontmatter (forme humaine avec accents/espaces)
+      // ; fallback sur le nom de fichier dé-slugifié (on garde tel quel)
+      recipeName.value = readTitle(content.value) ?? fallbackName
+
       // Charger l'image existante
       const info = await findRecipeImageInfo(currentPath)
       if (info) {
@@ -306,6 +471,9 @@ onMounted(async () => {
       saveError.value = e.message
     }
   }
+
+  // Tout est pré-rempli : activer la synchronisation recipeName → frontmatter
+  initializing.value = false
 })
 
 async function save() {
@@ -452,6 +620,18 @@ h1 {
   margin-bottom: 1.25rem;
 }
 
+/* Deux champs côte à côte (catégorie + origine) */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 520px) {
+  .field-row { grid-template-columns: 1fr; gap: 0; }
+}
+
 label, .editor-label {
   font-size: 0.82rem;
   font-weight: 600;
@@ -493,6 +673,77 @@ label, .editor-label {
 @keyframes slide-in {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Origin picker */
+.origin-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.origin-select,
+.origin-custom-input {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.origin-select { cursor: pointer; }
+
+.origin-select:focus,
+.origin-custom-input:focus {
+  outline: none;
+  border-color: var(--color-plum);
+  box-shadow: 0 0 0 3px var(--color-plum-light);
+}
+
+.origin-custom-input {
+  animation: slide-in 0.2s ease;
+}
+
+/* Season pills */
+.season-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.season-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 99px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.season-pill:hover {
+  border-color: var(--color-sky);
+  color: var(--color-sky);
+}
+
+.season-pill--active {
+  border-color: var(--color-sky);
+  background: var(--color-sky-light);
+  color: var(--color-sky);
+}
+
+.season-pill-icon {
+  font-size: 0.95rem;
 }
 
 .field-hint {
@@ -764,6 +1015,8 @@ label, .editor-label {
 .preview-badge--warm { background: var(--color-warm-light); color: var(--color-warm); }
 .preview-badge--accent { background: var(--color-accent-light); color: var(--color-accent); }
 .preview-badge--muted { background: var(--color-surface-alt); color: var(--color-muted); }
+.preview-badge--plum { background: var(--color-plum-light); color: var(--color-plum); }
+.preview-badge--sky { background: var(--color-sky-light); color: var(--color-sky); }
 
 /* Preview tags */
 .preview-tags {

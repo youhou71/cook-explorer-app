@@ -1,4 +1,4 @@
-# CookBook — PWA Cooklang × GitHub
+# Cook explorer — PWA × GitHub
 
 Gestionnaire de recettes [Cooklang](https://cooklang.org) stockées dans un repo GitHub.  
 Fonctionne sur navigateur (PC) et Android (installable via Chrome).

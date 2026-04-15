@@ -12,8 +12,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'CookBook',
-        short_name: 'CookBook',
+        name: 'CookExplorer',
+        short_name: 'CookExplorer',
         description: 'Gestionnaire de recettes Cooklang connecté à GitHub',
         theme_color: '#1a1a1a',
         background_color: '#ffffff',

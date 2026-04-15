@@ -43,6 +43,16 @@
               <span v-if="summary.totalTime" class="badge badge--muted">
                 ⏱ Total {{ summary.totalTime }}
               </span>
+              <span v-if="summary.origin" class="badge badge--origin">
+                {{ getOriginMeta(summary.origin).flag }} {{ getOriginMeta(summary.origin).label }}
+              </span>
+              <span
+                v-for="s in summary.seasons"
+                :key="s"
+                class="badge badge--season"
+              >
+                {{ getSeasonMeta(s).icon }} {{ getSeasonMeta(s).label }}
+              </span>
             </div>
             <div v-if="summary?.tags?.length" class="tags">
               <span
@@ -123,11 +133,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useRecipesStore } from '@/stores/recipes'
 import { useGitHub } from '@/composables/useGitHub'
 import { useCooklang } from '@/composables/useCooklang'
+import { getOriginMeta, getSeasonMeta } from '@/utils/taxonomies'
 import type { CooklangRecipe } from '@/types'
 
 const route = useRoute()
@@ -175,6 +186,15 @@ const updatedAtLabel = computed(() => formatDate(summary.value?.updatedAt))
 const ingredientSections = computed(() =>
   (parsed.value?.sections ?? []).filter(s => s.ingredients.length > 0)
 )
+
+/** Titre du navigateur : "{titre recette} | CookExplorer" tant qu'on est sur la page détail */
+const defaultTitle = document.title
+watch(title, (t) => {
+  if (t) document.title = `${t} | CookExplorer`
+}, { immediate: true })
+onUnmounted(() => {
+  document.title = defaultTitle
+})
 
 onMounted(async () => {
   loading.value = true
@@ -354,6 +374,16 @@ h1 {
 .hero:not(.hero--has-image) .badge--muted {
   background: var(--color-surface-alt);
   color: var(--color-muted);
+}
+
+.hero:not(.hero--has-image) .badge--origin {
+  background: var(--color-plum-light);
+  color: var(--color-plum);
+}
+
+.hero:not(.hero--has-image) .badge--season {
+  background: var(--color-sky-light);
+  color: var(--color-sky);
 }
 
 /* Tags */

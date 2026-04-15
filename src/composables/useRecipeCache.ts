@@ -1,6 +1,6 @@
 import { openDB, type IDBPDatabase } from 'idb'
 
-const DB_NAME = 'cookbook-cache'
+const DB_NAME = 'cookexplorer-cache'
 const DB_VERSION = 2
 
 interface CachedRecipe {

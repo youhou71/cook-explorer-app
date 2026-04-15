@@ -42,6 +42,27 @@ export interface CooklangRecipe {
   notes: string[]
 }
 
+/**
+ * Vue « résumé » d'une recette, utilisée pour l'affichage en liste et dans les headers.
+ * Les taxonomies (origin, seasons) sont extraites des tags préfixés `origine:*` / `saison:*`
+ * et séparées de la liste `tags` qui ne contient que les tags libres.
+ */
+export interface CooklangSummary {
+  title: string
+  servings?: string
+  prepTime?: string
+  cookTime?: string
+  totalTime?: string
+  tags: string[]
+  /** Origine géographique (valeur unique, sans préfixe). Ex : 'italien'. */
+  origin: string | null
+  /** Saisons associées (1+ valeurs, sans préfixe). Ex : ['été', 'automne']. */
+  seasons: string[]
+  ingredientCount: number
+  createdAt?: string
+  updatedAt?: string
+}
+
 // Types GitHub
 export interface GitHubConfig {
   token: string

@@ -11,71 +11,120 @@
       </RouterLink>
     </div>
 
-    <div class="search-bar">
-      <div class="search-wrap">
-        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input v-model="search" placeholder="Rechercher une recette..." class="search" />
-      </div>
-      <div v-if="allCategories.length" class="category-filter-wrap">
-        <select v-model="activeCategory" class="category-select">
-          <option value="">Toutes les catégories</option>
-          <option v-for="cat in allCategories" :key="cat" :value="cat">{{ cat }}</option>
-        </select>
-        <svg class="category-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="category-filter-wrap">
-        <select v-model="activeDuration" class="category-select">
-          <option value="">Toutes les durées</option>
-          <option value="15">Moins de 15 min</option>
-          <option value="30">Moins de 30 min</option>
-          <option value="60">Moins de 1 h</option>
-          <option value="120">Moins de 2 h</option>
-        </select>
-        <svg class="category-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="category-filter-wrap">
-        <select v-model="sortBy" class="category-select">
-          <option value="name">Trier : Nom (A-Z)</option>
-          <option value="created">Trier : Ajout récent</option>
-          <option value="updated">Trier : Modification récente</option>
-        </select>
-        <svg class="category-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div v-if="allTags.length" ref="tagsFilterRef" class="tags-filter-wrap">
-        <button
-          type="button"
-          class="tags-filter-btn"
-          :class="{ 'tags-filter-btn--active': activeTags.length > 0 }"
-          @click.stop="tagsOpen = !tagsOpen"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-            <line x1="7" y1="7" x2="7.01" y2="7"/>
-          </svg>
-          Tags
-          <span v-if="activeTags.length" class="tags-filter-count">{{ activeTags.length }}</span>
-          <svg class="tags-filter-chevron" :class="{ 'tags-filter-chevron--open': tagsOpen }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div v-if="tagsOpen" class="tags-dropdown" @click.stop>
-          <div class="tags-dropdown-list">
-            <button
-              v-for="tag in allTags"
-              :key="tag"
-              type="button"
-              class="tag-filter"
-              :class="[
-                activeTags.includes(tag)
-                  ? 'tag-filter--active tag-filter--' + recipes.getTagColor(tag)
-                  : ''
-              ]"
-              @click="toggleTag(tag)"
-            >
-              {{ tag }}
+    <div class="search-wrap">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input v-model="search" placeholder="Rechercher une recette..." class="search" />
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-group toolbar-filters">
+        <div v-if="allCategories.length" class="select-wrap">
+          <select v-model="activeCategory" class="select">
+            <option value="">Toutes les catégories</option>
+            <option v-for="cat in allCategories" :key="cat" :value="cat">{{ cat }}</option>
+          </select>
+          <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="select-wrap">
+          <select v-model="activeDuration" class="select">
+            <option value="">Toutes les durées</option>
+            <option value="15">Moins de 15 min</option>
+            <option value="30">Moins de 30 min</option>
+            <option value="60">Moins de 1 h</option>
+            <option value="120">Moins de 2 h</option>
+          </select>
+          <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div v-if="allOrigins.length" class="select-wrap">
+          <select v-model="activeOrigin" class="select">
+            <option value="">Toutes origines</option>
+            <option v-for="o in allOrigins" :key="o" :value="o">
+              {{ getOriginMeta(o).flag }} {{ getOriginMeta(o).label }}
+            </option>
+          </select>
+          <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div v-if="allSeasons.length" ref="seasonsFilterRef" class="tags-filter-wrap">
+          <button
+            type="button"
+            class="tags-filter-btn"
+            :class="{ 'tags-filter-btn--active': activeSeasons.length > 0 }"
+            @click.stop="seasonsOpen = !seasonsOpen"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+            </svg>
+            Saisons
+            <span v-if="activeSeasons.length" class="tags-filter-count">{{ activeSeasons.length }}</span>
+            <svg class="tags-filter-chevron" :class="{ 'tags-filter-chevron--open': seasonsOpen }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div v-if="seasonsOpen" class="tags-dropdown" @click.stop>
+            <div class="tags-dropdown-list">
+              <button
+                v-for="s in allSeasons"
+                :key="s"
+                type="button"
+                class="tag-filter"
+                :class="{ 'tag-filter--active tag-filter--sky': activeSeasons.includes(s) }"
+                @click="toggleSeasonFilter(s)"
+              >
+                {{ getSeasonMeta(s).icon }} {{ getSeasonMeta(s).label }}
+              </button>
+            </div>
+            <button v-if="activeSeasons.length" type="button" class="tags-clear" @click="clearSeasons">
+              Tout effacer
             </button>
           </div>
-          <button v-if="activeTags.length" type="button" class="tags-clear" @click="clearTags">
-            Tout effacer
+        </div>
+        <div v-if="allTags.length" ref="tagsFilterRef" class="tags-filter-wrap">
+          <button
+            type="button"
+            class="tags-filter-btn"
+            :class="{ 'tags-filter-btn--active': activeTags.length > 0 }"
+            @click.stop="tagsOpen = !tagsOpen"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+              <line x1="7" y1="7" x2="7.01" y2="7"/>
+            </svg>
+            Tags
+            <span v-if="activeTags.length" class="tags-filter-count">{{ activeTags.length }}</span>
+            <svg class="tags-filter-chevron" :class="{ 'tags-filter-chevron--open': tagsOpen }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
+          <div v-if="tagsOpen" class="tags-dropdown" @click.stop>
+            <div class="tags-dropdown-list">
+              <button
+                v-for="tag in allTags"
+                :key="tag"
+                type="button"
+                class="tag-filter"
+                :class="[
+                  activeTags.includes(tag)
+                    ? 'tag-filter--active tag-filter--' + recipes.getTagColor(tag)
+                    : ''
+                ]"
+                @click="toggleTag(tag)"
+              >
+                {{ tag }}
+              </button>
+            </div>
+            <button v-if="activeTags.length" type="button" class="tags-clear" @click="clearTags">
+              Tout effacer
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar-group toolbar-sort">
+        <span class="toolbar-sort-label">Trier par</span>
+        <div class="select-wrap">
+          <select v-model="sortBy" class="select select--ghost">
+            <option value="name">Nom (A-Z)</option>
+            <option value="created">Ajout récent</option>
+            <option value="updated">Modification récente</option>
+          </select>
+          <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
       </div>
     </div>
@@ -107,7 +156,14 @@
           <div v-else class="card-image card-image--placeholder">
             <span>🍽</span>
           </div>
-          <span v-if="getCategory(r.path)" class="card-category">{{ getCategory(r.path) }}</span>
+          <span v-if="getCategory(r.path) || recipeOrigin[r.path]" class="card-category">
+            <span
+              v-if="recipeOrigin[r.path]"
+              class="card-category-flag"
+              :title="getOriginMeta(recipeOrigin[r.path]).label"
+            >{{ getOriginMeta(recipeOrigin[r.path]).flag }}</span>
+            <template v-if="getCategory(r.path)">{{ getCategory(r.path) }}</template>
+          </span>
           <span v-if="recipeTotalTimes[r.path]" class="card-time card-time--overlay">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             {{ recipeTotalTimes[r.path] }}
@@ -140,6 +196,7 @@ import { useRecipesStore } from '@/stores/recipes'
 import { useGitHub } from '@/composables/useGitHub'
 import { useCooklang } from '@/composables/useCooklang'
 import { compareCategories } from '@/utils/categories'
+import { ORIGIN_COUNTRIES, SEASONS, getOriginMeta, getSeasonMeta } from '@/utils/taxonomies'
 
 const recipes = useRecipesStore()
 const { fetchRecipeList, fetchRecipeContent, findRecipeImage } = useGitHub()
@@ -148,16 +205,22 @@ const { parseRecipe, getTitle, getSummary } = useCooklang()
 const images = reactive<Record<string, string | null>>({})
 const titles = reactive<Record<string, string>>({})
 const recipeTags = reactive<Record<string, string[]>>({})
+const recipeOrigin = reactive<Record<string, string>>({})
+const recipeSeasons = reactive<Record<string, string[]>>({})
 const recipeTotalTimes = reactive<Record<string, string>>({})
 const recipeTotalMinutes = reactive<Record<string, number>>({})
 const recipeCreatedAt = reactive<Record<string, number>>({})
 const recipeUpdatedAt = reactive<Record<string, number>>({})
 const activeTags = ref<string[]>([])
+const activeOrigin = ref('')
+const activeSeasons = ref<string[]>([])
 const activeCategory = ref('')
 const activeDuration = ref('')
 const sortBy = ref<'name' | 'created' | 'updated'>('name')
 const tagsOpen = ref(false)
 const tagsFilterRef = ref<HTMLElement | null>(null)
+const seasonsOpen = ref(false)
+const seasonsFilterRef = ref<HTMLElement | null>(null)
 
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -172,6 +235,24 @@ const allTags = computed(() => {
   return [...set].sort((a, b) => a.localeCompare(b))
 })
 
+/** Origines réellement présentes dans les recettes (triées selon ORIGIN_COUNTRIES) */
+const allOrigins = computed(() => {
+  const set = new Set<string>()
+  for (const o of Object.values(recipeOrigin)) if (o) set.add(o)
+  // Trier d'abord dans l'ordre prédéfini (alpha) puis les valeurs libres (alpha)
+  const predef = ORIGIN_COUNTRIES.filter(c => set.has(c.value)).map(c => c.value)
+  const predefSet = new Set(predef)
+  const custom = [...set].filter(v => !predefSet.has(v)).sort((a, b) => a.localeCompare(b))
+  return [...predef, ...custom]
+})
+
+/** Saisons réellement présentes (dans l'ordre calendaire des SEASONS) */
+const allSeasons = computed(() => {
+  const set = new Set<string>()
+  for (const arr of Object.values(recipeSeasons)) arr.forEach(s => set.add(s))
+  return SEASONS.filter(s => set.has(s.value)).map(s => s.value)
+})
+
 function toggleTag(tag: string) {
   const idx = activeTags.value.indexOf(tag)
   if (idx >= 0) activeTags.value.splice(idx, 1)
@@ -182,12 +263,26 @@ function clearTags() {
   activeTags.value = []
 }
 
-/** Ferme le dropdown tags si clic en dehors */
+function toggleSeasonFilter(value: string) {
+  const idx = activeSeasons.value.indexOf(value)
+  if (idx >= 0) activeSeasons.value.splice(idx, 1)
+  else activeSeasons.value.push(value)
+}
+
+function clearSeasons() {
+  activeSeasons.value = []
+}
+
+/** Ferme les dropdowns (tags, saisons) si clic en dehors */
 function onDocumentClick(e: MouseEvent) {
-  if (!tagsOpen.value) return
-  const el = tagsFilterRef.value
-  if (el && !el.contains(e.target as Node)) {
-    tagsOpen.value = false
+  const target = e.target as Node
+  if (tagsOpen.value) {
+    const el = tagsFilterRef.value
+    if (el && !el.contains(target)) tagsOpen.value = false
+  }
+  if (seasonsOpen.value) {
+    const el = seasonsFilterRef.value
+    if (el && !el.contains(target)) seasonsOpen.value = false
   }
 }
 
@@ -227,7 +322,12 @@ const filtered = computed(() => {
       const matchesCategory = !activeCategory.value || getCategory(r.path) === activeCategory.value
       const matchesDuration = !maxMinutes ||
         (recipeTotalMinutes[r.path] !== undefined && recipeTotalMinutes[r.path] <= maxMinutes)
+      const matchesOrigin = !activeOrigin.value || recipeOrigin[r.path] === activeOrigin.value
+      // Saisons en OR : au moins une saison sélectionnée doit correspondre
+      const matchesSeasons = activeSeasons.value.length === 0 ||
+        activeSeasons.value.some(s => (recipeSeasons[r.path] ?? []).includes(s))
       return matchesSearch && matchesTags && matchesCategory && matchesDuration
+        && matchesOrigin && matchesSeasons
     })
     .sort((a, b) => {
       if (sortBy.value === 'created' || sortBy.value === 'updated') {
@@ -333,6 +433,9 @@ function extractMeta(path: string, name: string, parsed: any) {
   const summary = getSummary(parsed)
   titles[path] = summary.title || name
   recipeTags[path] = summary.tags || []
+  if (summary.origin) recipeOrigin[path] = summary.origin
+  else delete recipeOrigin[path]
+  recipeSeasons[path] = summary.seasons ?? []
   const total = computeTotalTime(summary)
   if (total) recipeTotalTimes[path] = total
   const minutes = computeTotalMinutes(summary)
@@ -469,19 +572,11 @@ h1 {
   line-height: 1;
 }
 
-/* Search + filtre catégorie */
-.search-bar {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  align-items: stretch;
-  margin-bottom: 2rem;
-}
-
+/* ── Recherche ── */
 .search-wrap {
   position: relative;
-  flex: 1 1 280px;
-  max-width: 400px;
+  max-width: 460px;
+  margin-bottom: 1rem;
 }
 
 .search-icon {
@@ -500,38 +595,82 @@ h1 {
   width: 100%;
 }
 
-.category-filter-wrap {
-  position: relative;
-  flex: 0 0 auto;
-  min-width: 180px;
+/* ── Toolbar filtres + tri ── */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.category-select {
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.toolbar-sort {
+  gap: 0.55rem;
+}
+
+.toolbar-sort-label {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ── Select générique (filtres) ── */
+.select-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  width: 100%;
-  padding: 0.55rem 2.2rem 0.55rem 0.95rem;
-  border: 1.5px solid var(--color-border);
+  width: auto;
+  padding: 0.5rem 2rem 0.5rem 0.85rem;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
   font-family: inherit;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.category-select:hover { border-color: var(--color-sage); }
-.category-select:focus {
+.select:hover { border-color: var(--color-sage); }
+.select:focus {
   outline: none;
   border-color: var(--color-sage);
   box-shadow: 0 0 0 3px rgba(107, 143, 113, 0.15);
 }
 
-.category-chevron {
+/* Variante "ghost" pour le tri : plus discret, pas de bordure au repos */
+.select--ghost {
+  border-color: transparent;
+  background: transparent;
+  padding-left: 0.35rem;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.select--ghost:hover {
+  background: var(--color-surface-alt);
+  border-color: var(--color-border);
+}
+
+.select-chevron {
   position: absolute;
-  right: 0.85rem;
+  right: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-muted);
@@ -548,13 +687,13 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.55rem 0.85rem 0.55rem 0.85rem;
-  border: 1.5px solid var(--color-border);
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
   font-family: inherit;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -708,6 +847,9 @@ h1 {
   position: absolute;
   top: 0.6rem;
   left: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -719,6 +861,13 @@ h1 {
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Drapeau origine — préfixe le nom de la catégorie (ou seul si pas de catégorie) */
+.card-category-flag {
+  font-size: 0.9rem;
+  line-height: 1;
+  display: inline-flex;
 }
 
 /* Temps total — overlay en desktop (haut-droite), inline en mobile */
@@ -841,6 +990,10 @@ h1 {
 
   .card-time--overlay { display: none; }
   .card-time--inline { display: inline-flex; }
+
+  .card-category-flag {
+    font-size: 0.75rem;
+  }
 
   .card-body {
     flex: 1 1 auto;

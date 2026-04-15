@@ -1,5 +1,6 @@
 import { Recipe, Ingredient, Cookware, Timer } from 'cooklang'
-import type { CooklangRecipe, CooklangSection, CooklangStep, CooklangIngredient } from '@/types'
+import type { CooklangRecipe, CooklangSection, CooklangStep, CooklangIngredient, CooklangSummary } from '@/types'
+import { splitTags } from '@/utils/taxonomies'
 
 // Commentaires cooklang (retirés avant la détection des sections pour éviter le surcomptage de steps)
 const COMMENT_REGEX = /(--.*)|(\[-(.|\n)+?-\])/g
@@ -258,16 +259,22 @@ export function useCooklang() {
   }
 
   /**
-   * Extrait les métadonnées utiles pour l'affichage en liste
+   * Extrait les métadonnées utiles pour l'affichage en liste.
+   * Les tags préfixés (`origine:*`, `saison:*`) sont séparés dans `origin` / `seasons` ;
+   * le champ `tags` ne contient plus que les tags libres.
    */
-  function getSummary(parsed: CooklangRecipe) {
+  function getSummary(parsed: CooklangRecipe): CooklangSummary {
+    const rawTags = parsed.metadata?.tags?.split(',').map((t: string) => t.trim()).filter(Boolean) ?? []
+    const { origin, seasons, free } = splitTags(rawTags)
     return {
       title: getTitle(parsed),
       servings: parsed.metadata?.servings,
       prepTime: parsed.metadata?.prep_time ?? parsed.metadata?.['prep time'] ?? parsed.metadata?.['prep_time'],
       cookTime: parsed.metadata?.cook_time ?? parsed.metadata?.['cook time'] ?? parsed.metadata?.['cook_time'],
       totalTime: parsed.metadata?.total_time ?? parsed.metadata?.['total time'] ?? parsed.metadata?.['total_time'] ?? parsed.metadata?.time,
-      tags: parsed.metadata?.tags?.split(',').map((t: string) => t.trim()) ?? [],
+      tags: free,
+      origin,
+      seasons,
       ingredientCount: parsed.ingredients.length,
       createdAt: parsed.metadata?.created_at ?? parsed.metadata?.['created at'],
       updatedAt: parsed.metadata?.updated_at ?? parsed.metadata?.['updated at']
