@@ -1,0 +1,163 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --font-serif: 'Lora', Georgia, serif;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+
+  /* Palette terracotta + sauge */
+  --color-bg: #faf8f5;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f3f0eb;
+  --color-border: #e6e1d8;
+  --color-text: #2c2924;
+  --color-muted: #7d7670;
+
+  --color-accent: #c4593a;
+  --color-accent-hover: #a84830;
+  --color-accent-light: #fdf0eb;
+
+  --color-sage: #6b8f71;
+  --color-sage-hover: #577a5c;
+  --color-sage-light: #eef4ef;
+
+  --color-warm: #d4a574;
+  --color-warm-light: #faf3ec;
+
+  --color-plum: #9b6b9e;
+  --color-plum-light: #f5eef6;
+
+  --color-sky: #5b96b8;
+  --color-sky-light: #edf5f9;
+
+  --color-rose: #c97171;
+  --color-rose-light: #faf0f0;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+
+  --transition-fast: 0.15s ease;
+  --transition-med: 0.25s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #161514;
+    --color-surface: #211f1d;
+    --color-surface-alt: #2a2725;
+    --color-border: #3a3633;
+    --color-text: #f0ece4;
+    --color-muted: #9a9590;
+
+    --color-accent: #e8714e;
+    --color-accent-hover: #f28565;
+    --color-accent-light: #2e1f18;
+
+    --color-sage: #8ab590;
+    --color-sage-hover: #a0cba6;
+    --color-sage-light: #1a2a1c;
+
+    --color-warm: #c89b6a;
+    --color-warm-light: #2a2218;
+
+    --color-plum: #b88abb;
+    --color-plum-light: #2a1f2b;
+
+    --color-sky: #7db8d8;
+    --color-sky-light: #1a2530;
+
+    --color-rose: #d89090;
+    --color-rose-light: #2e1f1f;
+
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.25);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.35);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  min-height: 100dvh;
+}
+
+a { color: var(--color-accent); text-decoration: none; transition: color var(--transition-fast); }
+a:hover { color: var(--color-accent-hover); text-decoration: none; }
+
+button {
+  font-family: var(--font-sans);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, textarea {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.85rem;
+  font-size: 0.9rem;
+  width: 100%;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-sage);
+  box-shadow: 0 0 0 3px var(--color-sage-light);
+}
+
+/* Highlights Cooklang dans les recettes */
+mark.ingredient {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.timer {
+  font-weight: 500;
+  color: var(--color-sage);
+  font-size: 0.9em;
+}
+
+.cookware {
+  color: var(--color-warm);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+
+/* ───────────────────────── IMPRESSION (A4 portrait) ───────────────────────── */
+@media print {
+  @page {
+    size: A4 portrait;
+    /* Marges larges pour éviter que l'imprimante (zone non-imprimable ~5-6mm) rogne le contenu */
+    margin: 2cm 2.2cm;
+  }
+
+  /* Forcer le rendu des fonds & couleurs (sinon Chrome/Firefox les suppriment par défaut) */
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+  }
+}
