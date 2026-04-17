@@ -639,7 +639,7 @@ async function save() {
     // 5. Si déplacement, nettoyer l'ancien fichier + entrée locale
     if (isMove && sha.value) {
       try { await deleteRecipe(oldPath, sha.value) } catch { /* ignore */ }
-      recipesStore.removeRecipe(oldPath)
+      await recipesStore.removeRecipe(oldPath)
     }
 
     router.push(`/recipes/${finalPath}`)

@@ -25,12 +25,21 @@ export function useGitHub() {
   const store = useGitHubStore()
 
   /**
+   * Wrapper fetch qui bypasse le cache HTTP du navigateur.
+   * Sans cela, le navigateur peut servir une réponse cachée pour l'API GitHub
+   * (même URL pour git.getTree sur une même branche), ce qui provoque des données
+   * périmées (ex : recette supprimée qui réapparaît dans la liste).
+   */
+  const noCacheFetch: typeof fetch = (input, init) =>
+    fetch(input, { ...init, cache: 'no-store' })
+
+  /**
    * Client Octokit réactif : recréé automatiquement quand le token change.
    * Null si la configuration est incomplète (pas de token / owner / repo).
    */
   const octokit = computed(() =>
     store.isConfigured
-      ? new Octokit({ auth: store.token })
+      ? new Octokit({ auth: store.token, request: { fetch: noCacheFetch } })
       : null
   )
 

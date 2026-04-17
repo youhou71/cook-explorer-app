@@ -149,10 +149,14 @@ export const useRecipesStore = defineStore('recipes', () => {
     })
   }
 
-  /** Supprime une recette par son path (mémoire + IndexedDB). */
-  function removeRecipe(path: string) {
+  /**
+   * Supprime une recette par son path (mémoire + IndexedDB).
+   * Async pour garantir que le cache IndexedDB est bien purgé avant
+   * toute navigation — évite qu'un rechargement ne restaure la recette.
+   */
+  async function removeRecipe(path: string) {
     recipes.value = recipes.value.filter(r => r.path !== path)
-    cache.deleteRecipe(path)
+    await cache.deleteRecipe(path)
   }
 
   /** Recherche une recette en mémoire par son path. */

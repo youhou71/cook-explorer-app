@@ -301,7 +301,7 @@ async function confirmDelete() {
   if (!confirm(`Supprimer "${title.value}" ?`)) return
   try {
     await deleteRecipe(path.value, sha.value)
-    recipesStore.removeRecipe(path.value)
+    await recipesStore.removeRecipe(path.value)
     router.push('/recipes')
   } catch (e: any) {
     alert(`Erreur : ${e.message}`)

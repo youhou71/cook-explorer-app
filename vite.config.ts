@@ -51,17 +51,12 @@ export default defineConfig({
       workbox: {
         /** Cache tous les assets statiques (JS, CSS, HTML, images). */
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        runtimeCaching: [
-          {
-            /** Les appels à l'API GitHub passent d'abord par le réseau, avec fallback sur le cache (mode offline). */
-            urlPattern: /^https:\/\/api\.github\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'github-api-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 300 }
-            }
-          }
-        ]
+        /**
+         * Pas de runtimeCaching pour l'API GitHub : l'app gère sa propre couche
+         * de cache via IndexedDB (store recipes). Un cache SW sur les appels API
+         * provoque des données périmées (recettes supprimées qui réapparaissent).
+         */
+        runtimeCaching: []
       }
     })
   ]
