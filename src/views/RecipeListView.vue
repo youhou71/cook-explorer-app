@@ -193,6 +193,14 @@
   </div>
 </template>
 
+<!--
+  Vue principale de la liste des recettes (route /recipes).
+
+  Affiche une grille de cartes de recettes avec recherche full-text et filtres
+  combinés (catégorie, durée, origine, saisons, tags libres). Les catégories
+  dans le dropdown et sur les badges de cartes utilisent les settings dynamiques
+  (nom d'affichage, icône, couleurs) chargés depuis les fichiers .category.json.
+-->
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -202,32 +210,58 @@ import { useCooklang } from '@/composables/useCooklang'
 import { compareCategories, getCategory } from '@/utils/categories'
 import { ORIGIN_COUNTRIES, SEASONS, getOriginMeta, getSeasonMeta } from '@/utils/taxonomies'
 
+/** Store Pinia central (recettes, tags, catégories). */
 const recipes = useRecipesStore()
 const { fetchRecipeList, fetchRecipeContent, findRecipeImage, fetchCategorySettings } = useGitHub()
 const { parseRecipe, getTitle, getSummary } = useCooklang()
 
+// ── Métadonnées extraites par recette (path → valeur) ─────────────────────
+/** Data URIs des images de couverture (path → dataUri ou null). */
 const images = reactive<Record<string, string | null>>({})
+/** Titres d'affichage (path → titre extrait du frontmatter). */
 const titles = reactive<Record<string, string>>({})
+/** Tags libres (sans préfixe) par recette. */
 const recipeTags = reactive<Record<string, string[]>>({})
+/** Origine géographique par recette (path → valeur sans préfixe). */
 const recipeOrigin = reactive<Record<string, string>>({})
+/** Saisons par recette (path → tableau de valeurs). */
 const recipeSeasons = reactive<Record<string, string[]>>({})
+/** Durée totale formatée pour l'affichage (path → "1h30", "45 min"…). */
 const recipeTotalTimes = reactive<Record<string, string>>({})
+/** Durée totale en minutes pour le filtrage numérique. */
 const recipeTotalMinutes = reactive<Record<string, number>>({})
+/** Timestamp de création (pour le tri par date d'ajout). */
 const recipeCreatedAt = reactive<Record<string, number>>({})
+/** Timestamp de dernière modification. */
 const recipeUpdatedAt = reactive<Record<string, number>>({})
+
+// ── État des filtres ──────────────────────────────────────────────────────
+/** Tags actuellement sélectionnés (filtre AND : tous doivent matcher). */
 const activeTags = ref<string[]>([])
+/** Origine sélectionnée dans le dropdown (filtre exact). */
 const activeOrigin = ref('')
+/** Saisons sélectionnées (filtre OR : au moins une doit matcher). */
 const activeSeasons = ref<string[]>([])
+/** Catégorie sélectionnée dans le dropdown. */
 const activeCategory = ref('')
+/** Durée max sélectionnée (en minutes, sous forme de string "15"/"30"/"60"/"120"). */
 const activeDuration = ref('')
+/** Critère de tri actif. */
 const sortBy = ref<'name' | 'created' | 'updated'>('name')
+/** État d'ouverture du dropdown des tags. */
 const tagsOpen = ref(false)
+/** Ref DOM du wrapper du dropdown tags (pour détecter les clics extérieurs). */
 const tagsFilterRef = ref<HTMLElement | null>(null)
+/** État d'ouverture du dropdown des saisons. */
 const seasonsOpen = ref(false)
+/** Ref DOM du wrapper du dropdown saisons. */
 const seasonsFilterRef = ref<HTMLElement | null>(null)
 
+/** Indicateur de chargement initial (premier fetch sans cache). */
 const loading = ref(false)
+/** Message d'erreur du fetch (null si OK). */
 const error = ref<string | null>(null)
+/** Texte de recherche saisi par l'utilisateur. */
 const search = ref('')
 
 /** Tous les tags uniques trouvés, triés alphabétiquement */
@@ -298,7 +332,11 @@ watch(allTags, (tags) => {
   if (tags.length) recipes.syncTags(tags)
 }, { immediate: true })
 
-/** Toutes les catégories uniques, triées selon l'ordre dynamique */
+/**
+ * Toutes les catégories uniques présentes dans le repo, triées selon l'ordre
+ * dynamique défini dans les `.category.json` (via `recipes.categoryMap`).
+ * Si aucun .category.json n'est configuré, l'ordre legacy est utilisé.
+ */
 const allCategories = computed(() => {
   const set = new Set<string>()
   for (const r of recipes.recipes) {
@@ -481,7 +519,9 @@ onMounted(async () => {
   // Hydrater depuis IndexedDB pour un affichage instantané
   await recipes.hydrate()
 
-  // Rafraîchir les settings de catégories en arrière-plan
+  // Rafraîchir les settings de catégories (.category.json) en arrière-plan.
+  // Permet de mettre à jour les noms, couleurs et ordre des catégories sans
+  // bloquer l'affichage initial (les valeurs du cache IndexedDB sont déjà chargées).
   fetchCategorySettings()
     .then(settings => recipes.setCategorySettings(settings))
     .catch(() => {})

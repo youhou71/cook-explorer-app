@@ -1,8 +1,35 @@
+/**
+ * Composable de parsing et de rendu des fichiers Cooklang (.cook).
+ *
+ * Ce module est le cœur du traitement des recettes. Il convertit un fichier
+ * `.cook` brut (texte avec frontmatter YAML + syntaxe Cooklang) en un objet
+ * structuré `CooklangRecipe` exploitable par les vues.
+ *
+ * Pipeline de parsing :
+ *  1. **convertFrontmatter** : traduit le bloc YAML (--- ... ---) en métadonnées
+ *     `>> key: value` compréhensibles par la lib `cooklang`.
+ *  2. **Nettoyage** : suppression des commentaires Cooklang (-- et [- ... -]),
+ *     extraction des notes (> ...) et des sections (= ...).
+ *  3. **Parsing** : la lib `cooklang` transforme le texte nettoyé en steps,
+ *     ingrédients, ustensiles et timers.
+ *  4. **Structuration** : regroupement des steps par section, déduplication
+ *     des ingrédients par section et au global, extraction des métadonnées.
+ *
+ * Fonctions de rendu :
+ *  - `renderStep` : génère le HTML d'une étape (highlight ingrédients, timers, ustensiles)
+ *  - `formatIngredient` : formate un ingrédient avec quantité mise à l'échelle
+ *  - `formatQty` : arrondi élégant des quantités numériques
+ *
+ * Fonctions d'extraction :
+ *  - `getTitle` / `getSummary` / `getBaseServings` : extraient les métadonnées
+ *    utiles depuis le `CooklangRecipe` parsé.
+ */
+
 import { Recipe, Ingredient, Cookware, Timer } from 'cooklang'
 import type { CooklangRecipe, CooklangSection, CooklangStep, CooklangIngredient, CooklangSummary } from '@/types'
 import { splitTags } from '@/utils/taxonomies'
 
-// Commentaires cooklang (retirés avant la détection des sections pour éviter le surcomptage de steps)
+/** Regex des commentaires Cooklang : ligne (--) et bloc ([- ... -]). Retirés avant le parsing. */
 const COMMENT_REGEX = /(--.*)|(\[-(.|\n)+?-\])/g
 
 export function useCooklang() {

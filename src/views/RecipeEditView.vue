@@ -1,3 +1,27 @@
+<!--
+  Page de création / édition d'une recette (routes /recipes/new et /recipes/:path/edit).
+
+  Layout en deux colonnes :
+   - Panneau gauche (éditeur) : formulaire de métadonnées (catégorie, origine,
+     nom, image, saisons) + textarea Cooklang avec coloration syntaxique implicite.
+   - Panneau droit (aperçu) : rendu en temps réel de la recette parsée par la
+     lib Cooklang, avec debounce de 400ms pour ne pas surcharger le parsing.
+
+  Gestion du chemin de fichier :
+   Le chemin final est construit dynamiquement à partir de la catégorie choisie
+   et du nom de recette slugifié. Si le chemin change (modification de catégorie
+   ou de nom), un déplacement est effectué (création au nouveau chemin + suppression
+   de l'ancien). L'image associée est également déplacée le cas échéant.
+
+  Taxonomies (origine + saisons) :
+   Stockées comme tags préfixés dans le frontmatter YAML (`origine:italien`,
+   `saison:été`). Les contrôles UI (select, pills) sont des computed r/w dont
+   la source de vérité est le contenu du textarea — pas d'état dupliqué.
+
+  Dates :
+   `created_at` et `updated_at` sont injectées automatiquement dans le frontmatter
+   au moment de la sauvegarde via `upsertRecipeDates()`.
+-->
 <template>
   <div class="edit-view">
     <h1>{{ isNew ? 'Nouvelle recette' : `Modifier : ${filename}` }}</h1>
@@ -239,17 +263,28 @@ const recipesStore = useRecipesStore()
 const { fetchRecipeContent, saveRecipe, deleteRecipe, findRecipeImageInfo, saveRecipeImage, deleteRecipeImage } = useGitHub()
 const { parseRecipe, formatIngredient, renderStep, getSummary } = useCooklang()
 
+/** Chemin actuel de la recette dans le repo (vide en mode création). */
 const path = computed(() => route.params.path as string)
+/** True si on crée une nouvelle recette (route /recipes/new). */
 const isNew = computed(() => route.name === 'recipe-new')
+/** Nom du fichier .cook (dernier segment du path). */
 const filename = computed(() => path.value?.split('/').pop() ?? '')
 
+/** Type de plat sélectionné (nom de dossier, "__new__" pour un nouveau, "" pour aucun). */
 const categoryChoice = ref('')
+/** Nom du nouveau type de plat (visible uniquement si categoryChoice === "__new__"). */
 const newCategory = ref('')
+/** Nom humain de la recette (avec accents et espaces — sera slugifié pour le nom de fichier). */
 const recipeName = ref('')
+/** Contenu brut du fichier .cook (frontmatter YAML + corps Cooklang). */
 const content = ref('')
+/** SHA Git du fichier .cook (nécessaire pour les mises à jour, vide en création). */
 const sha = ref('')
+/** Indicateur d'enregistrement en cours (désactive le bouton et affiche un spinner). */
 const saving = ref(false)
+/** Message d'erreur de la dernière sauvegarde (null si aucune erreur). */
 const saveError = ref<string | null>(null)
+/** Recette parsée par la lib Cooklang (null si le contenu est vide ou invalide). */
 const parsed = ref<CooklangRecipe | null>(null)
 
 /**
@@ -267,7 +302,11 @@ const previewIngredientSections = computed(() =>
   (parsed.value?.sections ?? []).filter(s => s.ingredients.length > 0)
 )
 
-/** Liste des types de plat existants (dossiers racine contenant des .cook) */
+/**
+ * Liste des types de plat existants (dossiers racine contenant des .cook),
+ * triée selon l'ordre dynamique des `.category.json`.
+ * Utilisée pour le picker de catégorie dans le formulaire d'édition.
+ */
 const existingCategories = computed(() => {
   const set = new Set<string>()
   for (const r of recipesStore.recipes) {
@@ -293,18 +332,27 @@ const pathWillChange = computed(() =>
   !isNew.value && targetPath.value && targetPath.value !== path.value
 )
 
-// ── Image management ──
+// ── Gestion de l'image associée ──────────────────────────────────────────
+
+/** Ref vers l'<input type="file"> caché (déclenché par les boutons visuels). */
 const fileInput = ref<HTMLInputElement | null>(null)
+/** Data URI de l'aperçu image (existante ou nouvellement sélectionnée). */
 const imagePreview = ref<string | null>(null)
+/** Fichier image sélectionné par l'utilisateur (null si aucun changement). */
 const imageFile = ref<File | null>(null)
+/** Chemin de l'image existante sur le repo (pour update/delete). */
 const existingImagePath = ref<string | null>(null)
+/** SHA de l'image existante sur le repo. */
 const existingImageSha = ref<string | null>(null)
+/** True si l'utilisateur a supprimé l'image (sera effectif au save). */
 const imageMarkedForRemoval = ref(false)
 
+/** Ouvre le sélecteur de fichier natif du navigateur. */
 function pickImage() {
   fileInput.value?.click()
 }
 
+/** Callback de l'input file : lit le fichier sélectionné en data URI pour l'aperçu. */
 function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
@@ -317,14 +365,13 @@ function onFileChange(e: Event) {
     imageMarkedForRemoval.value = false
   }
   reader.readAsDataURL(file)
-  // Reset l'input pour permettre de re-sélectionner le même fichier
   input.value = ''
 }
 
+/** Supprime l'aperçu et marque l'image existante pour suppression au save. */
 function removeImage() {
   imagePreview.value = null
   imageFile.value = null
-  // Si une image existe sur GitHub, la marquer pour suppression au save
   if (existingImagePath.value) imageMarkedForRemoval.value = true
 }
 
@@ -476,6 +523,17 @@ onMounted(async () => {
   initializing.value = false
 })
 
+/**
+ * Sauvegarde la recette sur GitHub.
+ *
+ * Étapes :
+ *  1. Injection des dates (created_at / updated_at) dans le frontmatter
+ *  2. Écriture du fichier .cook au chemin final (création ou update)
+ *  3. Gestion de l'image : upload, remplacement, suppression ou déplacement
+ *  4. Mise à jour du cache IndexedDB (image)
+ *  5. Si déplacement (changement de path) : suppression de l'ancien fichier
+ *  6. Navigation vers la page de détail de la recette
+ */
 async function save() {
   saveError.value = null
   const finalPath = targetPath.value

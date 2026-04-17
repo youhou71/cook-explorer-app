@@ -1,5 +1,24 @@
+/**
+ * Feuille de styles globale de CookExplorer.
+ *
+ * Structure :
+ *  1. Polices Google Fonts (Lora serif + DM Sans)
+ *  2. Variables CSS (:root) : palette, rayons, ombres, transitions
+ *  3. Dark mode automatique (prefers-color-scheme: dark)
+ *  4. Reset box-sizing + styles de base (body, liens, inputs)
+ *  5. Highlights Cooklang (ingrédients, timers, ustensiles)
+ *  6. Styles d'impression (@media print)
+ *
+ * La palette est organisée en paires couleur/couleur-light pour le texte
+ * et l'arrière-plan des badges, tags et indicateurs. Les variables
+ * `--cat-color` et `--cat-color-light` sont dynamiques : elles sont
+ * redéfinies inline par la RecipeDetailView selon la catégorie de la recette.
+ */
+
+/* ── Polices : Lora (titres, serif) + DM Sans (corps, sans-serif) ── */
 @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
 
+/* ── Variables du thème (mode clair) ── */
 :root {
   --font-serif: 'Lora', Georgia, serif;
   --font-sans: 'DM Sans', system-ui, sans-serif;
@@ -44,10 +63,14 @@
   --transition-fast: 0.15s ease;
   --transition-med: 0.25s ease;
 
+  /* Variables de thème dynamique par catégorie.
+     Redéfinies inline sur .detail-view via :style quand une recette est affichée.
+     Valeurs par défaut : sage (vert), utilisées quand aucun .category.json n'existe. */
   --cat-color: var(--color-sage);
   --cat-color-light: var(--color-sage-light);
 }
 
+/* ── Variables du thème (mode sombre — automatique via prefers-color-scheme) ── */
 @media (prefers-color-scheme: dark) {
   :root {
     --color-bg: #161514;
@@ -83,9 +106,12 @@
   }
 }
 
+/* ── Reset global ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+
+/* ── Styles de base ── */
 
 body {
   font-family: var(--font-sans);
@@ -123,7 +149,7 @@ input:focus, textarea:focus {
   box-shadow: 0 0 0 3px var(--color-sage-light);
 }
 
-/* Highlights Cooklang dans les recettes */
+/* ── Highlights Cooklang (rendus par renderStep dans useCooklang) ── */
 mark.ingredient {
   background: var(--color-accent-light);
   color: var(--color-accent);

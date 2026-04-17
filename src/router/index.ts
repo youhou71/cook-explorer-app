@@ -1,8 +1,28 @@
+/**
+ * Configuration du routeur Vue Router.
+ *
+ * Routes de l'application :
+ *  - `/`                → redirige vers /recipes (si configuré) ou /settings
+ *  - `/settings`        → configuration GitHub (token, repo, branche)
+ *  - `/categories`      → paramétrage des types de plats (couleurs, ordre, icônes…)
+ *  - `/recipes`         → liste des recettes avec recherche et filtres
+ *  - `/recipes/new`     → création d'une nouvelle recette
+ *  - `/recipes/:path/edit` → édition d'une recette existante
+ *  - `/recipes/:path`   → détail d'une recette
+ *
+ * Les routes marquées `meta: { requiresConfig: true }` sont protégées par un
+ * guard de navigation qui redirige vers /settings si GitHub n'est pas configuré.
+ *
+ * Tous les composants de vue sont chargés en lazy-loading (import dynamique)
+ * pour réduire la taille du bundle initial.
+ */
+
 import { createRouter, createWebHistory } from 'vue-router'
 import { useGitHubStore } from '@/stores/github'
 
 const router = createRouter({
   history: createWebHistory(),
+  /** Scroll en haut de page à chaque navigation */
   scrollBehavior() {
     return { top: 0, behavior: 'smooth' }
   },
@@ -52,7 +72,7 @@ const router = createRouter({
   ]
 })
 
-// Guard : redirige vers settings si non configuré
+/** Guard de navigation : redirige vers /settings si le repo GitHub n'est pas configuré. */
 router.beforeEach((to) => {
   if (to.meta.requiresConfig) {
     const store = useGitHubStore()

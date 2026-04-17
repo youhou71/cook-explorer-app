@@ -1,5 +1,18 @@
+<!--
+  Composant racine de l'application CookExplorer.
+
+  Structure :
+   - Barre de progression (route-progress) : animation linéaire pendant la navigation
+   - Header sticky : logo + lien repo + navigation (catégories, paramètres)
+   - Zone principale : RouterView avec transition page (fade + slide-up)
+
+  Le header est semi-transparent avec backdrop-filter (blur) pour un effet glass.
+  En mode impression, header et progress bar sont masqués, la zone principale
+  passe en pleine largeur sans padding.
+-->
 <template>
   <div id="app">
+    <!-- Barre de progression animée en haut de page pendant les transitions de route -->
     <div class="route-progress" :class="{ 'route-progress--active': navigating }" />
 
     <header class="app-header">
@@ -38,16 +51,20 @@ import { ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useGitHubStore } from '@/stores/github'
 
+/** Store GitHub : utilisé pour afficher le nom du repo et conditionner les liens de navigation. */
 const github = useGitHubStore()
+
+/** Flag d'animation de la barre de progression (true = en cours de navigation). */
 const navigating = ref(false)
 const router = useRouter()
 
+/** Déclenche l'animation de la barre de progression au début de chaque navigation. */
 router.beforeEach(() => {
   navigating.value = true
 })
 
+/** Termine l'animation avec un délai de 400ms pour laisser le CSS finir le keyframe. */
 router.afterEach(() => {
-  // Laisser l'animation de la barre terminer avant de la cacher
   setTimeout(() => {
     navigating.value = false
   }, 400)

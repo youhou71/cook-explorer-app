@@ -1,3 +1,19 @@
+<!--
+  Page de configuration GitHub (route /settings).
+
+  Permet à l'utilisateur de saisir ses identifiants de connexion au repo GitHub
+  contenant ses fichiers .cook : Personal Access Token, propriétaire, nom du repo
+  et branche. Les valeurs sont persistées dans localStorage via le store GitHub.
+
+  Fonctionnalités :
+   - Formulaire de saisie avec validation visuelle
+   - Bouton "Tester la connexion" : appel API GET /repos pour vérifier les droits
+   - Bouton "Enregistrer" : persiste la config et redirige vers /recipes
+   - Zone de danger : efface la configuration (réinitialise localStorage)
+
+  Le token ne transite jamais par un serveur — tous les appels sont faits
+  directement depuis le navigateur vers l'API GitHub.
+-->
 <template>
   <div class="settings">
     <h1>Configuration GitHub</h1>
@@ -67,10 +83,12 @@ import { useRouter } from 'vue-router'
 import { useGitHubStore } from '@/stores/github'
 import { useGitHub } from '@/composables/useGitHub'
 
+/** Store Pinia contenant la configuration GitHub (persistée dans localStorage). */
 const github = useGitHubStore()
 const router = useRouter()
 const { testConnection } = useGitHub()
 
+/** État réactif du formulaire, initialisé avec les valeurs actuelles du store. */
 const form = reactive({
   token: github.token,
   owner: github.owner,
@@ -78,11 +96,17 @@ const form = reactive({
   branch: github.branch || 'main'
 })
 
+/** Indicateur d'un test de connexion en cours (désactive le bouton). */
 const testing = ref(false)
+/** Résultat du dernier test de connexion (success/error + message). */
 const testResult = ref<{ success: boolean; message: string } | null>(null)
 
+/**
+ * Teste la connexion GitHub avec les valeurs actuelles du formulaire.
+ * Applique temporairement la config au store pour que le composable useGitHub
+ * puisse créer le client Octokit avec le bon token.
+ */
 async function testConn() {
-  // Applique temporairement pour tester
   github.saveConfig({ ...form })
   testing.value = true
   testResult.value = null
@@ -90,6 +114,7 @@ async function testConn() {
   testing.value = false
 }
 
+/** Enregistre la configuration et navigue vers la liste des recettes. */
 function save() {
   github.saveConfig({ ...form })
   router.push('/recipes')

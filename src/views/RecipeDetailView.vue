@@ -132,6 +132,19 @@
   </div>
 </template>
 
+<!--
+  Vue de détail d'une recette.
+
+  Affiche la recette complète : hero image, badges de métadonnées (portions,
+  temps, origine, saisons), panneau d'ingrédients sticky, étapes numérotées
+  groupées par section, notes de l'auteur, source et dates.
+
+  Le thème couleur de la page est dynamique : les variables CSS `--cat-color`
+  et `--cat-color-light` sont définies inline sur la div racine `.detail-view`
+  à partir des settings de la catégorie de la recette (fichier `.category.json`).
+  Cela teinte le hero gradient, les numéros d'étape, les bordures de section,
+  les puces d'ingrédients, les boutons d'action et les liens source.
+-->
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
@@ -148,32 +161,55 @@ const recipesStore = useRecipesStore()
 const { fetchRecipeContent, deleteRecipe, findRecipeImage } = useGitHub()
 const { parseRecipe, getTitle, getSummary, getBaseServings, formatIngredient, renderStep, capitalize } = useCooklang()
 
+/** Chemin de la recette dans le repo (ex : "plats/poulet-roti.cook") */
 const path = computed(() => route.params.path as string)
+
+/**
+ * Settings de la catégorie associée à cette recette.
+ * Détermine les couleurs du thème de la page (--cat-color, --cat-color-light).
+ * Si aucun `.category.json` n'existe, les valeurs par défaut (sage) sont utilisées.
+ */
 const catSettings = computed(() => recipesStore.getCategorySettings(getCategory(path.value)))
+
 const loading = ref(false)
 const error = ref<string | null>(null)
+/** Recette parsée par la bibliothèque Cooklang */
 const parsed = ref<CooklangRecipe | null>(null)
+/** SHA Git du fichier .cook (nécessaire pour les opérations update/delete) */
 const sha = ref('')
+/** Data URI de l'image hero (null si aucune image) */
 const imageUrl = ref<string | null>(null)
+/** Nombre de portions actuel (ajustable via les boutons +/−) */
 const servings = ref<number | null>(null)
 
+/** Nombre de portions de base (tel que défini dans le frontmatter) */
 const baseServings = computed(() =>
   parsed.value ? getBaseServings(parsed.value) : null
 )
+
+/**
+ * Ratio portions actuelles / portions de base.
+ * Utilisé pour recalculer les quantités d'ingrédients proportionnellement.
+ */
 const ratio = computed(() => {
   if (!baseServings.value || !servings.value) return 1
   return servings.value / baseServings.value
 })
 
+/** Titre de la recette (depuis le frontmatter ou le nom de fichier en fallback) */
 const title = computed(() =>
   parsed.value ? getTitle(parsed.value, path.value.split('/').pop()!) : ''
 )
+
+/** Résumé de la recette (métadonnées extraites du frontmatter + taxonomies) */
 const summary = computed(() =>
   parsed.value ? getSummary(parsed.value) : null
 )
+
+/** Alias pour le template (v-else-if="recipe" est plus lisible) */
 const recipe = computed(() => parsed.value)
 
-/** Formate une date ISO en "12 avril 2026" (fr) — null si invalide ou absente */
+/** Formate une date ISO en "12 avril 2026" (format français long). Retourne null si invalide. */
 function formatDate(iso: string | undefined): string | null {
   if (!iso) return null
   const d = new Date(iso)
@@ -181,15 +217,17 @@ function formatDate(iso: string | undefined): string | null {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
+/** Date de création formatée pour l'affichage */
 const createdAtLabel = computed(() => formatDate(summary.value?.createdAt))
+/** Date de modification formatée pour l'affichage */
 const updatedAtLabel = computed(() => formatDate(summary.value?.updatedAt))
 
-/** Sections affichables dans le panneau ingrédients (filtrées : au moins 1 ingrédient) */
+/** Sections ayant au moins 1 ingrédient (pour le panneau ingrédients latéral) */
 const ingredientSections = computed(() =>
   (parsed.value?.sections ?? []).filter(s => s.ingredients.length > 0)
 )
 
-/** Titre du navigateur : "{titre recette} | CookExplorer" tant qu'on est sur la page détail */
+/** Met à jour le titre du navigateur avec le nom de la recette */
 const defaultTitle = document.title
 watch(title, (t) => {
   if (t) document.title = `${t} | CookExplorer`
@@ -198,20 +236,27 @@ onUnmounted(() => {
   document.title = defaultTitle
 })
 
+/**
+ * Chargement initial de la recette au montage du composant.
+ * Stratégie : cache IndexedDB d'abord (affichage instantané), puis GitHub si nécessaire.
+ * L'image est chargée en parallèle avec une cascade de fallbacks :
+ *   1. Cache IndexedDB (data URI stocké)
+ *   2. Métadonnée `image` du frontmatter
+ *   3. Convention Cooklang (même nom que le .cook avec extension image)
+ */
 onMounted(async () => {
   loading.value = true
   error.value = null
   try {
-    // Hydrater le store si nécessaire
     await recipesStore.hydrate()
 
-    // 1. Tenter le cache (Pinia hydraté depuis IndexedDB)
+    // Tenter de charger depuis le cache Pinia (hydraté depuis IndexedDB)
     const cached = recipesStore.getByPath(path.value)
     if (cached?.content) {
       parsed.value = parseRecipe(cached.content)
       sha.value = cached.sha
     } else {
-      // 2. Sinon charger depuis GitHub
+      // Sinon, télécharger depuis GitHub
       const { content, sha: fileSha } = await fetchRecipeContent(path.value)
       sha.value = fileSha
       parsed.value = parseRecipe(content)
@@ -224,11 +269,10 @@ onMounted(async () => {
       })
     }
 
-    // Initialiser les portions
+    // Initialiser le compteur de portions
     servings.value = getBaseServings(parsed.value!)
 
-
-    // Image : cache IndexedDB d'abord, puis métadonnée, puis convention repo
+    // Résolution de l'image hero (cascade de fallbacks)
     const cachedEntry = await recipesStore.getCached(path.value)
     if (cachedEntry?.image) {
       imageUrl.value = cachedEntry.image
@@ -247,10 +291,12 @@ onMounted(async () => {
   }
 })
 
+/** Ouvre la boîte de dialogue d'impression du navigateur */
 function printRecipe() {
   window.print()
 }
 
+/** Demande confirmation puis supprime la recette du repo et du cache local */
 async function confirmDelete() {
   if (!confirm(`Supprimer "${title.value}" ?`)) return
   try {
