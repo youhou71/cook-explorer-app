@@ -1,5 +1,5 @@
 <template>
-  <div class="detail-view">
+  <div class="detail-view" :style="{ '--cat-color': catSettings.color, '--cat-color-light': catSettings.colorSecondary }">
     <div v-if="loading" class="state-msg">
       <div class="loader"></div>
       Chargement...
@@ -140,6 +140,7 @@ import { useGitHub } from '@/composables/useGitHub'
 import { useCooklang } from '@/composables/useCooklang'
 import { getOriginMeta, getSeasonMeta } from '@/utils/taxonomies'
 import type { CooklangRecipe } from '@/types'
+import { getCategory } from '@/utils/categories'
 
 const route = useRoute()
 const router = useRouter()
@@ -148,6 +149,7 @@ const { fetchRecipeContent, deleteRecipe, findRecipeImage } = useGitHub()
 const { parseRecipe, getTitle, getSummary, getBaseServings, formatIngredient, renderStep, capitalize } = useCooklang()
 
 const path = computed(() => route.params.path as string)
+const catSettings = computed(() => recipesStore.getCategorySettings(getCategory(path.value)))
 const loading = ref(false)
 const error = ref<string | null>(null)
 const parsed = ref<CooklangRecipe | null>(null)
@@ -293,7 +295,7 @@ async function confirmDelete() {
   overflow: hidden;
   margin-bottom: 1.5rem;
   min-height: 120px;
-  background: linear-gradient(135deg, var(--color-accent-light) 0%, var(--color-sage-light) 100%);
+  background: linear-gradient(135deg, var(--cat-color-light) 0%, var(--color-surface) 100%);
 }
 
 .hero--has-image {
@@ -472,12 +474,12 @@ h1 {
 }
 
 .hero:not(.hero--has-image) .servings-btn {
-  background: var(--color-sage);
+  background: var(--cat-color);
   color: white;
 }
 
 .hero:not(.hero--has-image) .servings-btn:hover {
-  background: var(--color-sage-hover);
+  background: color-mix(in srgb, var(--cat-color) 80%, black);
 }
 
 .servings-value {
@@ -549,7 +551,7 @@ h1 {
 
 .action-btn:hover {
   background: white;
-  color: var(--color-sage);
+  color: var(--cat-color);
   transform: scale(1.1);
   text-decoration: none;
 }
@@ -611,7 +613,7 @@ h2 {
   margin-top: 0.85rem;
   margin-bottom: 0.45rem;
   padding-left: 0.5rem;
-  border-left: 2.5px solid var(--color-sage);
+  border-left: 2.5px solid var(--cat-color);
   font-weight: 500;
 }
 
@@ -640,7 +642,7 @@ h2 {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--color-sage);
+  background: var(--cat-color);
   flex-shrink: 0;
 }
 
@@ -666,7 +668,7 @@ h2 {
   margin-top: 1.75rem;
   margin-bottom: 0.85rem;
   padding-left: 0.6rem;
-  border-left: 3px solid var(--color-sage);
+  border-left: 3px solid var(--cat-color);
 }
 
 .section-title:first-of-type {
@@ -693,7 +695,7 @@ h2 {
   top: 2px;
   width: 28px;
   height: 28px;
-  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-warm) 100%);
+  background: linear-gradient(135deg, var(--cat-color) 0%, color-mix(in srgb, var(--cat-color) 60%, var(--color-warm)) 100%);
   color: white;
   border-radius: 50%;
   font-size: 0.78rem;
@@ -738,7 +740,7 @@ h2 {
 }
 
 .source a {
-  color: var(--color-accent);
+  color: var(--cat-color);
   word-break: break-all;
 }
 

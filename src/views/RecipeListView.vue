@@ -21,7 +21,7 @@
         <div v-if="allCategories.length" class="select-wrap">
           <select v-model="activeCategory" class="select">
             <option value="">Toutes les catégories</option>
-            <option v-for="cat in allCategories" :key="cat" :value="cat">{{ cat }}</option>
+            <option v-for="cat in allCategories" :key="cat" :value="cat">{{ recipes.getCategorySettings(cat).icon }} {{ recipes.getCategorySettings(cat).name }}</option>
           </select>
           <svg class="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
@@ -156,13 +156,17 @@
           <div v-else class="card-image card-image--placeholder">
             <span>🍽</span>
           </div>
-          <span v-if="getCategory(r.path) || recipeOrigin[r.path]" class="card-category">
+          <span
+            v-if="getCategory(r.path) || recipeOrigin[r.path]"
+            class="card-category"
+            :style="getCategory(r.path) ? { background: recipes.getCategorySettings(getCategory(r.path)).colorSecondary, color: recipes.getCategorySettings(getCategory(r.path)).color } : undefined"
+          >
             <span
               v-if="recipeOrigin[r.path]"
               class="card-category-flag"
               :title="getOriginMeta(recipeOrigin[r.path]).label"
             >{{ getOriginMeta(recipeOrigin[r.path]).flag }}</span>
-            <template v-if="getCategory(r.path)">{{ getCategory(r.path) }}</template>
+            <template v-if="getCategory(r.path)">{{ recipes.getCategorySettings(getCategory(r.path)).icon }} {{ recipes.getCategorySettings(getCategory(r.path)).name }}</template>
           </span>
           <span v-if="recipeTotalTimes[r.path]" class="card-time card-time--overlay">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -195,11 +199,11 @@ import { RouterLink } from 'vue-router'
 import { useRecipesStore } from '@/stores/recipes'
 import { useGitHub } from '@/composables/useGitHub'
 import { useCooklang } from '@/composables/useCooklang'
-import { compareCategories } from '@/utils/categories'
+import { compareCategories, getCategory } from '@/utils/categories'
 import { ORIGIN_COUNTRIES, SEASONS, getOriginMeta, getSeasonMeta } from '@/utils/taxonomies'
 
 const recipes = useRecipesStore()
-const { fetchRecipeList, fetchRecipeContent, findRecipeImage } = useGitHub()
+const { fetchRecipeList, fetchRecipeContent, findRecipeImage, fetchCategorySettings } = useGitHub()
 const { parseRecipe, getTitle, getSummary } = useCooklang()
 
 const images = reactive<Record<string, string | null>>({})
@@ -294,20 +298,14 @@ watch(allTags, (tags) => {
   if (tags.length) recipes.syncTags(tags)
 }, { immediate: true })
 
-/** Extrait le type de plat (= premier dossier du path) */
-function getCategory(path: string): string {
-  const idx = path.indexOf('/')
-  return idx === -1 ? '' : path.substring(0, idx)
-}
-
-/** Toutes les catégories uniques, triées selon l'ordre de priorité */
+/** Toutes les catégories uniques, triées selon l'ordre dynamique */
 const allCategories = computed(() => {
   const set = new Set<string>()
   for (const r of recipes.recipes) {
     const cat = getCategory(r.path)
     if (cat) set.add(cat)
   }
-  return [...set].sort(compareCategories)
+  return [...set].sort((a, b) => compareCategories(a, b, recipes.categoryMap))
 })
 
 const filtered = computed(() => {
@@ -482,6 +480,11 @@ async function loadMeta(list: { path: string; name: string }[]) {
 onMounted(async () => {
   // Hydrater depuis IndexedDB pour un affichage instantané
   await recipes.hydrate()
+
+  // Rafraîchir les settings de catégories en arrière-plan
+  fetchCategorySettings()
+    .then(settings => recipes.setCategorySettings(settings))
+    .catch(() => {})
 
   if (recipes.recipes.length > 0) {
     // Afficher le cache immédiatement

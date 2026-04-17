@@ -1,7 +1,8 @@
 import { Octokit } from '@octokit/rest'
 import { computed } from 'vue'
 import { useGitHubStore } from '@/stores/github'
-import type { RecipeFile } from '@/types'
+import type { RecipeFile, CategorySettings } from '@/types'
+import { buildCategorySettings } from '@/utils/categories'
 
 export function useGitHub() {
   const store = useGitHubStore()
@@ -247,8 +248,47 @@ export function useGitHub() {
     })
   }
 
+  async function fetchCategorySettings(): Promise<CategorySettings[]> {
+    if (!octokit.value) throw new Error('GitHub non configuré')
+
+    const { data } = await octokit.value.rest.git.getTree({
+      owner: store.owner,
+      repo: store.repo,
+      tree_sha: store.branch,
+      recursive: '1'
+    })
+
+    const categoryFiles = data.tree.filter(item =>
+      item.type === 'blob' &&
+      item.path?.endsWith('/.category.json') &&
+      item.path.split('/').length === 2
+    )
+
+    const results: CategorySettings[] = []
+
+    await Promise.allSettled(
+      categoryFiles.map(async (item) => {
+        try {
+          const { content, sha: fileSha } = await fetchRecipeContent(item.path!)
+          const json = JSON.parse(content)
+          const folder = item.path!.split('/')[0]
+          results.push(buildCategorySettings(folder, json, fileSha))
+        } catch { /* fichier malformé : ignoré */ }
+      })
+    )
+
+    return results
+  }
+
+  async function saveCategorySettings(folder: string, settings: CategorySettings): Promise<string> {
+    const { sha: _sha, folder: _folder, ...payload } = settings
+    const content = JSON.stringify(payload, null, 2) + '\n'
+    return saveRecipe(`${folder}/.category.json`, content, settings.sha)
+  }
+
   return {
     fetchRecipeList, fetchRecipeContent, saveRecipe, deleteRecipe, testConnection,
-    findRecipeImage, findRecipeImageInfo, saveRecipeImage, deleteRecipeImage
+    findRecipeImage, findRecipeImageInfo, saveRecipeImage, deleteRecipeImage,
+    fetchCategorySettings, saveCategorySettings
   }
 }

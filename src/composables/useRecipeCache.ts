@@ -1,7 +1,8 @@
 import { openDB, type IDBPDatabase } from 'idb'
+import type { CategorySettings } from '@/types'
 
 const DB_NAME = 'cookexplorer-cache'
-const DB_VERSION = 2
+const DB_VERSION = 3
 
 interface CachedRecipe {
   path: string
@@ -32,6 +33,9 @@ function getDb() {
         }
         if (!db.objectStoreNames.contains('tags')) {
           db.createObjectStore('tags', { keyPath: 'name' })
+        }
+        if (!db.objectStoreNames.contains('categories')) {
+          db.createObjectStore('categories', { keyPath: 'folder' })
         }
       }
     })
@@ -151,5 +155,26 @@ export function useRecipeCache() {
     return result
   }
 
-  return { getAllRecipes, getRecipe, putRecipe, putMany, deleteRecipe, clearAll, getAllTags, syncTags }
+  // ── Categories ──
+
+  async function getAllCategories(): Promise<CategorySettings[]> {
+    const db = await getDb()
+    return db.getAll('categories')
+  }
+
+  async function putManyCategories(items: CategorySettings[]) {
+    const db = await getDb()
+    const tx = db.transaction('categories', 'readwrite')
+    for (const item of items) {
+      await tx.store.put(item)
+    }
+    await tx.done
+  }
+
+  async function clearCategories() {
+    const db = await getDb()
+    await db.clear('categories')
+  }
+
+  return { getAllRecipes, getRecipe, putRecipe, putMany, deleteRecipe, clearAll, getAllTags, syncTags, getAllCategories, putManyCategories, clearCategories }
 }

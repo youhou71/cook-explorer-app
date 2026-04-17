@@ -20,6 +20,12 @@ const router = createRouter({
       component: () => import('@/views/SettingsView.vue')
     },
     {
+      path: '/categories',
+      name: 'categories',
+      component: () => import('@/views/CategorySettingsView.vue'),
+      meta: { requiresConfig: true }
+    },
+    {
       path: '/recipes',
       name: 'recipes',
       component: () => import('@/views/RecipeListView.vue'),

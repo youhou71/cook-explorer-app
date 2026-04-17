@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
-import { ref, reactive } from 'vue'
-import type { RecipeFile } from '@/types'
+import { ref, reactive, computed } from 'vue'
+import type { RecipeFile, CategorySettings } from '@/types'
 import { useRecipeCache, type CachedTag } from '@/composables/useRecipeCache'
+import { defaultCategorySettings } from '@/utils/categories'
 
 export const useRecipesStore = defineStore('recipes', () => {
   const recipes = ref<RecipeFile[]>([])
@@ -11,6 +12,25 @@ export const useRecipesStore = defineStore('recipes', () => {
 
   // Map réactive tag → couleur, accessible partout
   const tagColors = reactive<Record<string, string>>({})
+
+  // Catégories
+  const categorySettings = ref<CategorySettings[]>([])
+  const categoryMap = computed(() => {
+    const map = new Map<string, CategorySettings>()
+    for (const cat of categorySettings.value) {
+      map.set(cat.folder, cat)
+    }
+    return map
+  })
+
+  function getCategorySettings(folder: string): CategorySettings {
+    return categoryMap.value.get(folder) ?? defaultCategorySettings(folder)
+  }
+
+  function setCategorySettings(settings: CategorySettings[]) {
+    categorySettings.value = settings
+    cache.putManyCategories(settings)
+  }
 
   const cache = useRecipeCache()
 
@@ -26,6 +46,11 @@ export const useRecipesStore = defineStore('recipes', () => {
         content: c.content,
         parsed: c.parsedJson ? JSON.parse(c.parsedJson) : undefined
       }))
+    }
+    // Charger les catégories
+    const cats = await cache.getAllCategories()
+    if (cats.length) {
+      categorySettings.value = cats
     }
     // Charger les tags
     const tags = await cache.getAllTags()
@@ -106,8 +131,10 @@ export const useRecipesStore = defineStore('recipes', () => {
 
   return {
     recipes, loading, error, hydrated, tagColors,
+    categorySettings, categoryMap,
     hydrate, setRecipes, upsertRecipe, removeRecipe, getByPath,
     cacheImage, cacheTitle, getCached, getAllCached,
-    syncTags, getTagColor
+    syncTags, getTagColor,
+    getCategorySettings, setCategorySettings
   }
 })

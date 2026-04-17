@@ -11,7 +11,7 @@
             <div class="category-picker">
               <select v-model="categoryChoice" class="category-select">
                 <option value="">— Sans catégorie —</option>
-                <option v-for="cat in existingCategories" :key="cat" :value="cat">{{ cat }}</option>
+                <option v-for="cat in existingCategories" :key="cat" :value="cat">{{ recipesStore.getCategorySettings(cat).icon }} {{ recipesStore.getCategorySettings(cat).name }}</option>
                 <option value="__new__">+ Nouveau type…</option>
               </select>
               <input
@@ -221,7 +221,7 @@ import { useGitHub } from '@/composables/useGitHub'
 import { useCooklang } from '@/composables/useCooklang'
 import type { CooklangRecipe } from '@/types'
 import { useDebounceFn } from '@vueuse/core'
-import { compareCategories } from '@/utils/categories'
+import { compareCategories, getCategory } from '@/utils/categories'
 import { upsertRecipeDates, upsertTags, upsertTitle, readTags, readTitle } from '@/utils/frontmatter'
 import { slugify } from '@/utils/slug'
 import {
@@ -271,10 +271,10 @@ const previewIngredientSections = computed(() =>
 const existingCategories = computed(() => {
   const set = new Set<string>()
   for (const r of recipesStore.recipes) {
-    const idx = r.path.indexOf('/')
-    if (idx > 0) set.add(r.path.substring(0, idx))
+    const cat = getCategory(r.path)
+    if (cat) set.add(cat)
   }
-  return [...set].sort(compareCategories)
+  return [...set].sort((a, b) => compareCategories(a, b, recipesStore.categoryMap))
 })
 
 /** Chemin final construit depuis catégorie + nom de recette (slugifié) */

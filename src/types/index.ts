@@ -86,3 +86,15 @@ export interface RecipeDirectory {
   files: RecipeFile[]
   subdirs: RecipeDirectory[]
 }
+
+export interface CategorySettings {
+  folder: string
+  name: string
+  color: string
+  colorSecondary: string
+  order: number
+  hours: string[]
+  icon: string
+  description: string
+  sha?: string
+}
