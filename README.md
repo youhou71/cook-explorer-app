@@ -110,8 +110,4 @@ src/
 ## Pistes d'évolution
 
 - **Mode cuisine** : affichage plein écran étape par étape, écran toujours allumé (`WakeLock API`)
-- **Minuteurs interactifs** : déclenchés depuis les `~{N%min}` du fichier
-- **Multiplication des portions** : recalcul automatique des quantités
-- **Images** : stockage dans le même repo (dossier `images/`)
-- **Recherche par ingrédient** : parser tous les fichiers et indexer
-- **Hors-ligne** : les recettes ouvertes sont mises en cache par le service worker
+  - Avoir un affichage par étpae, suivant, précédent. Sur l'étape en cours, afficher les quantités ?

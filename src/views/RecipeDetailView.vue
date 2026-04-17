@@ -14,6 +14,15 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </RouterLink>
         <div class="hero-actions">
+          <button
+            v-if="wakeLockSupported"
+            class="action-btn"
+            :class="{ 'action-btn--cooking': wakeLockActive }"
+            :title="wakeLockActive ? 'Désactiver le mode cuisine' : 'Mode cuisine (écran allumé)'"
+            @click="toggleWakeLock"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.97 0-9-2.69-9-6 0-3.05 2.85-5.43 4.4-6.72L9 8l1.2-3.6a1 1 0 0 1 1.8.08L13 8l1.6 1.28C16.15 10.57 21 12.95 21 16c0 3.31-4.03 6-9 6z"/><path d="M12 22c-1.66 0-3-1.12-3-2.5S10.34 15 12 15s3 3.12 3 4.5-1.34 2.5-3 2.5z"/></svg>
+          </button>
           <button class="action-btn" title="Imprimer" @click="printRecipe">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           </button>
@@ -154,12 +163,16 @@ import { useCooklang } from '@/composables/useCooklang'
 import { getOriginMeta, getSeasonMeta } from '@/utils/taxonomies'
 import type { CooklangRecipe } from '@/types'
 import { getCategory } from '@/utils/categories'
+import { useWakeLock } from '@/composables/useWakeLock'
 
 const route = useRoute()
 const router = useRouter()
 const recipesStore = useRecipesStore()
 const { fetchRecipeContent, deleteRecipe, findRecipeImage } = useGitHub()
 const { parseRecipe, getTitle, getSummary, getBaseServings, formatIngredient, renderStep, capitalize } = useCooklang()
+
+/** Wake Lock : empêche l'écran de s'éteindre en mode cuisine. */
+const { isSupported: wakeLockSupported, isActive: wakeLockActive, toggle: toggleWakeLock } = useWakeLock()
 
 /** Chemin de la recette dans le repo (ex : "plats/poulet-roti.cook") */
 const path = computed(() => route.params.path as string)
@@ -604,6 +617,17 @@ h1 {
 
 .action-btn--danger:hover {
   color: #e74c3c;
+}
+
+/* Mode cuisine actif : bouton teinté avec la couleur de la catégorie */
+.action-btn--cooking {
+  background: var(--cat-color) !important;
+  color: white !important;
+}
+
+.action-btn--cooking:hover {
+  background: color-mix(in srgb, var(--cat-color) 80%, black) !important;
+  color: white !important;
 }
 
 /* Body */
