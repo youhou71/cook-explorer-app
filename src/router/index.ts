@@ -21,7 +21,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useGitHubStore } from '@/stores/github'
 
 const router = createRouter({
-  history: createWebHistory(),
+  /**
+   * Mode HTML5 history avec base URL dynamique.
+   * `import.meta.env.BASE_URL` est injecté par Vite depuis la config `base`
+   * (ex : '/cook-explorer-app/' en production, '/' en développement).
+   */
+  history: createWebHistory(import.meta.env.BASE_URL),
   /** Scroll en haut de page à chaque navigation */
   scrollBehavior() {
     return { top: 0, behavior: 'smooth' }

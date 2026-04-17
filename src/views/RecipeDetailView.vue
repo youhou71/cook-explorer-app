@@ -83,10 +83,10 @@
             </ul>
           </template>
 
-          <template v-if="parsed.cookware.length">
+          <template v-if="parsed?.cookware.length">
             <h2>Matériel</h2>
             <ul>
-              <li v-for="(cw, i) in parsed.cookware" :key="i">
+              <li v-for="(cw, i) in parsed?.cookware" :key="i">
                 <span class="ing-dot ing-dot--warm"></span>
                 {{ capitalize(cw.name) }}
               </li>
@@ -97,7 +97,7 @@
         <!-- Étapes -->
         <section class="steps-panel">
           <h2>Préparation</h2>
-          <template v-for="(sec, si) in parsed.sections" :key="si">
+          <template v-for="(sec, si) in parsed?.sections" :key="si">
             <h3 v-if="sec.title" class="section-title">{{ sec.title }}</h3>
             <ol class="section-ol">
               <li
@@ -108,16 +108,16 @@
               />
             </ol>
           </template>
-          <div v-if="parsed.notes?.length" class="notes">
-            <div v-for="(note, i) in parsed.notes" :key="i" class="note">
+          <div v-if="parsed?.notes?.length" class="notes">
+            <div v-for="(note, i) in parsed?.notes" :key="i" class="note">
               <span class="note-icon">💡</span>
               <span>{{ note }}</span>
             </div>
           </div>
-          <p v-if="parsed.metadata?.source" class="source">
+          <p v-if="parsed?.metadata?.source" class="source">
             Source :
-            <a :href="parsed.metadata.source" target="_blank" rel="noopener noreferrer">
-              {{ parsed.metadata.source }}
+            <a :href="parsed?.metadata?.source" target="_blank" rel="noopener noreferrer">
+              {{ parsed?.metadata?.source }}
             </a>
           </p>
 

@@ -270,6 +270,7 @@ onMounted(async () => {
   // Attacher le drag-and-drop après le prochain rendu DOM
   await nextTick()
   if (listEl.value) {
+    // @ts-expect-error — les types UseSortableOptions de @vueuse/integrations n'exposent pas toutes les options sortablejs (handle, animation)
     useSortable(listEl, localCategories, {
       handle: '.drag-handle',  // Seul le symbole ☰ déclenche le drag
       animation: 200,          // Durée de l'animation de réordonnement (ms)

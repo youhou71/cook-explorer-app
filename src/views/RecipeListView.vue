@@ -149,7 +149,7 @@
         <div class="card-image-wrap">
           <img
             v-if="images[r.path]"
-            :src="images[r.path]"
+            :src="images[r.path] ?? undefined"
             :alt="r.name"
             class="card-image"
           />

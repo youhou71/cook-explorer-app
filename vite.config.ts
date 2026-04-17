@@ -21,6 +21,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { resolve } from 'path'
 
 export default defineConfig({
+  /**
+   * Base URL de déploiement.
+   * En production (GitHub Pages), l'app est servie depuis /cook-explorer-app/.
+   * En dev, Vite utilise '/' par défaut (le ternaire n'est pas nécessaire car
+   * Vite override en dev, mais c'est explicite pour la documentation).
+   */
+  base: '/cook-explorer-app/',
   resolve: {
     alias: { '@': resolve(__dirname, 'src') }
   },
