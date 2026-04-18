@@ -563,18 +563,20 @@ h1 {
   text-decoration: none;
 }
 
-/* Hero actions */
+/* Hero actions — bandeau groupé */
 .hero-actions {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
   z-index: 2;
   display: flex;
-  gap: 0.4rem;
-
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border-radius: 99px;
+  overflow: hidden;
 }
 
-.hero:not(.hero--has-image) .action-btn {
+.hero:not(.hero--has-image) .hero-actions {
   background: var(--color-surface-alt);
 }
 
@@ -582,27 +584,33 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
+  width: 36px;
   height: 34px;
-  border-radius: 50%;
   border: none;
+  border-radius: 0;
   cursor: pointer;
   text-decoration: none;
-  transition: all var(--transition-fast);
-  background: rgba(255, 255, 255, 0.85);
+  transition: color var(--transition-fast), background var(--transition-fast);
+  background: none;
   color: var(--color-muted);
-  backdrop-filter: blur(8px);
 }
 
 .action-btn:hover {
-  background: white;
   color: var(--cat-color);
-  transform: scale(1.1);
+  background: rgba(0, 0, 0, 0.06);
   text-decoration: none;
 }
 
 .action-btn--danger:hover {
   color: #e74c3c;
+}
+
+.action-btn + .action-btn {
+  border-left: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.hero:not(.hero--has-image) .action-btn + .action-btn {
+  border-left-color: var(--color-border);
 }
 
 /* Body */
@@ -633,24 +641,12 @@ h1 {
     flex-shrink: 0;
   }
 
-  .back-btn {
-    order: 2;
-    position: static;
-    margin: 0.75rem 0 0.75rem 1rem;
-  }
-
-  .hero-actions {
-    order: 3;
-    position: static;
-    margin: 0.75rem 1rem 0.75rem auto;
-  }
-
   .hero-overlay {
     order: 4;
     position: relative;
     width: 100%;
     background: none;
-    padding: 0 1.5rem 1rem;
+    padding: 0.75rem 1.5rem 1rem;
   }
 
   .hero:not(.hero--has-image) .hero-overlay {
