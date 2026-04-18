@@ -26,6 +26,16 @@
           </span>
         </RouterLink>
         <div class="nav-links">
+          <button
+            v-if="wakeLockSupported && isRecipeDetail"
+            class="nav-link nav-link--cooking"
+            :class="{ 'nav-link--cooking-active': wakeLockActive }"
+            :title="wakeLockActive ? 'Désactiver le mode cuisine' : 'Mode cuisine (écran allumé)'"
+            @click="toggleWakeLock"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.97 0-9-2.69-9-6 0-3.05 2.85-5.43 4.4-6.72L9 8l1.2-3.6a1 1 0 0 1 1.8.08L13 8l1.6 1.28C16.15 10.57 21 12.95 21 16c0 3.31-4.03 6-9 6z"/><path d="M12 22c-1.66 0-3-1.12-3-2.5S10.34 15 12 15s3 3.12 3 4.5-1.34 2.5-3 2.5z"/></svg>
+            <span class="cooking-label">Mode cuisine</span>
+          </button>
           <RouterLink v-if="github.isConfigured" to="/categories" class="nav-link nav-link--icon" title="Types de plats">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           </RouterLink>
@@ -47,16 +57,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useGitHubStore } from '@/stores/github'
+import { useWakeLock } from '@/composables/useWakeLock'
 
 /** Store GitHub : utilisé pour afficher le nom du repo et conditionner les liens de navigation. */
 const github = useGitHubStore()
 
+/** Wake Lock : empêche l'écran de s'éteindre en mode cuisine. */
+const { isSupported: wakeLockSupported, isActive: wakeLockActive, toggle: toggleWakeLock, release: releaseWakeLock } = useWakeLock()
+
+const route = useRoute()
+const isRecipeDetail = computed(() => route.name === 'recipe-detail')
+
 /** Flag d'animation de la barre de progression (true = en cours de navigation). */
 const navigating = ref(false)
 const router = useRouter()
+
+/** Désactive le mode cuisine en quittant le détail de recette. */
+router.beforeEach((to) => {
+  if (to.name !== 'recipe-detail' && wakeLockActive.value) {
+    releaseWakeLock()
+  }
+})
 
 /** Déclenche l'animation de la barre de progression au début de chaque navigation. */
 router.beforeEach(() => {
@@ -220,6 +244,56 @@ router.afterEach(() => {
   justify-content: center;
   padding: 0.45rem;
   border-radius: 50%;
+}
+
+/* ── Bouton Mode cuisine ── */
+.nav-link--cooking {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--color-warm);
+  background: none;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.nav-link--cooking:hover {
+  color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+.nav-link--cooking-active {
+  color: white;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.nav-link--cooking-active svg {
+  stroke: white;
+}
+
+.nav-link--cooking-active:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  color: white;
+}
+
+.cooking-label {
+  white-space: nowrap;
+}
+
+@media (max-width: 500px) {
+  .cooking-label { display: none; }
+  .nav-link--cooking {
+    padding: 0.45rem;
+    border-radius: 50%;
+  }
 }
 
 .app-main {

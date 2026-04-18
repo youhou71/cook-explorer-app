@@ -76,5 +76,5 @@ export function useWakeLock() {
     document.removeEventListener('visibilitychange', onVisibilityChange)
   })
 
-  return { isSupported, isActive, toggle }
+  return { isSupported, isActive, toggle, release }
 }

@@ -14,15 +14,6 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </RouterLink>
         <div class="hero-actions">
-          <button
-            v-if="wakeLockSupported"
-            class="action-btn"
-            :class="{ 'action-btn--cooking': wakeLockActive }"
-            :title="wakeLockActive ? 'Désactiver le mode cuisine' : 'Mode cuisine (écran allumé)'"
-            @click="toggleWakeLock"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.97 0-9-2.69-9-6 0-3.05 2.85-5.43 4.4-6.72L9 8l1.2-3.6a1 1 0 0 1 1.8.08L13 8l1.6 1.28C16.15 10.57 21 12.95 21 16c0 3.31-4.03 6-9 6z"/><path d="M12 22c-1.66 0-3-1.12-3-2.5S10.34 15 12 15s3 3.12 3 4.5-1.34 2.5-3 2.5z"/></svg>
-          </button>
           <button class="action-btn" title="Imprimer" @click="printRecipe">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           </button>
@@ -163,16 +154,11 @@ import { useCooklang } from '@/composables/useCooklang'
 import { getOriginMeta, getSeasonMeta } from '@/utils/taxonomies'
 import type { CooklangRecipe } from '@/types'
 import { getCategory } from '@/utils/categories'
-import { useWakeLock } from '@/composables/useWakeLock'
-
 const route = useRoute()
 const router = useRouter()
 const recipesStore = useRecipesStore()
 const { fetchRecipeContent, deleteRecipe, findRecipeImage } = useGitHub()
 const { parseRecipe, getTitle, getSummary, getBaseServings, formatIngredient, renderStep, capitalize } = useCooklang()
-
-/** Wake Lock : empêche l'écran de s'éteindre en mode cuisine. */
-const { isSupported: wakeLockSupported, isActive: wakeLockActive, toggle: toggleWakeLock } = useWakeLock()
 
 /** Chemin de la recette dans le repo (ex : "plats/poulet-roti.cook") */
 const path = computed(() => route.params.path as string)
@@ -619,17 +605,6 @@ h1 {
   color: #e74c3c;
 }
 
-/* Mode cuisine actif : bouton teinté avec la couleur de la catégorie */
-.action-btn--cooking {
-  background: var(--cat-color) !important;
-  color: white !important;
-}
-
-.action-btn--cooking:hover {
-  background: color-mix(in srgb, var(--cat-color) 80%, black) !important;
-  color: white !important;
-}
-
 /* Body */
 .detail-body {
   display: grid;
@@ -639,9 +614,101 @@ h1 {
 
 @media (max-width: 640px) {
   .detail-body { grid-template-columns: 1fr; }
-  .hero--has-image { min-height: 220px; }
-  .hero-image { height: 220px; }
+
+  /* Hero mobile : image pleine largeur, contenu en dessous */
+  .hero {
+    margin: -2rem -1.5rem 1rem;
+    border-radius: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .hero--has-image { min-height: 0; }
+
+  .hero-image {
+    order: 1;
+    width: 100%;
+    height: 250px;
+    flex-shrink: 0;
+  }
+
+  .back-btn {
+    order: 2;
+    position: static;
+    margin: 0.75rem 0 0.75rem 1rem;
+  }
+
+  .hero-actions {
+    order: 3;
+    position: static;
+    margin: 0.75rem 1rem 0.75rem auto;
+  }
+
+  .hero-overlay {
+    order: 4;
+    position: relative;
+    width: 100%;
+    background: none;
+    padding: 0 1.5rem 1rem;
+  }
+
+  .hero:not(.hero--has-image) .hero-overlay {
+    padding-top: 0;
+  }
+
   h1 { font-size: 1.6rem; }
+
+  .hero--has-image h1 {
+    color: var(--color-text);
+    text-shadow: none;
+  }
+
+  .badge { backdrop-filter: none; }
+
+  .hero--has-image .badge {
+    background: var(--color-surface-alt);
+    color: var(--color-text);
+  }
+
+  .hero--has-image .badge--sage {
+    background: var(--color-sage-light);
+    color: var(--color-sage);
+  }
+
+  .hero--has-image .badge--warm {
+    background: var(--color-warm-light);
+    color: var(--color-warm);
+  }
+
+  .hero--has-image .badge--accent {
+    background: var(--color-accent-light);
+    color: var(--color-accent);
+  }
+
+  .hero--has-image .badge--muted {
+    background: var(--color-surface-alt);
+    color: var(--color-muted);
+  }
+
+  .hero--has-image .badge--origin {
+    background: var(--color-plum-light);
+    color: var(--color-plum);
+  }
+
+  .hero--has-image .badge--season {
+    background: var(--color-sky-light);
+    color: var(--color-sky);
+  }
+
+  .hero--has-image .servings-btn {
+    background: var(--cat-color);
+    color: white;
+  }
+
+  .hero--has-image .servings-btn:hover {
+    background: color-mix(in srgb, var(--cat-color) 80%, black);
+  }
 }
 
 /* Ingrédients */
