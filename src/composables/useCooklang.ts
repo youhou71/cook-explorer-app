@@ -362,7 +362,8 @@ export function useCooklang() {
         return `<mark class="ingredient">${item.name}</mark>`
       }
       if (item.type === 'timer') {
-        const label = item.name ? `${item.name} (${item.quantity} ${item.units})` : `${item.quantity} ${item.units}`
+        const displayName = item.name && !item.name.startsWith('timer ') ? item.name : ''
+        const label = displayName ? `${displayName} (${item.quantity} ${item.units})` : `${item.quantity} ${item.units}`
         return `<span class="timer">⏱ ${label}</span>`
       }
       if (item.type === 'cookware') {

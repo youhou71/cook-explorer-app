@@ -26,6 +26,46 @@
   <div class="edit-view">
     <h1>{{ isNew ? 'Nouvelle recette' : `Modifier : ${filename}` }}</h1>
 
+    <!-- Import depuis une URL (visible uniquement en mode création) -->
+    <div v-if="isNew" class="import-section">
+      <button
+        type="button"
+        class="import-header"
+        @click="importExpanded = !importExpanded"
+      >
+        <svg class="import-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Importer depuis une URL
+        <span class="import-chevron" :class="{ 'import-chevron--open': importExpanded }">&#x25B8;</span>
+      </button>
+      <div v-if="importExpanded" class="import-body">
+        <div class="import-row">
+          <input
+            v-model="importUrl"
+            type="url"
+            class="import-input"
+            placeholder="https://www.marmiton.org/recettes/..."
+            @keydown.enter.prevent="doImport"
+          />
+          <button
+            type="button"
+            class="btn btn--primary import-btn"
+            :disabled="importing || !importUrl.trim()"
+            @click="doImport"
+          >
+            <span v-if="importing" class="loader loader--sm"></span>
+            {{ importing ? 'Import...' : 'Importer' }}
+          </button>
+        </div>
+        <div v-if="importing" class="import-status">
+          Extraction de la recette en cours...
+        </div>
+        <div v-if="importError" class="msg msg--error import-error">{{ importError }}</div>
+        <div v-if="importSuccess" class="msg msg--success import-error">
+          Recette importée ! Vérifiez le contenu ci-dessous avant d'enregistrer.
+        </div>
+      </div>
+    </div>
+
     <div class="edit-layout">
       <!-- Éditeur -->
       <div class="editor-panel">
@@ -256,12 +296,33 @@ import {
   getOriginMeta,
   getSeasonMeta
 } from '@/utils/taxonomies'
+import { useRecipeImport } from '@/composables/useRecipeImport'
 
 const route = useRoute()
 const router = useRouter()
 const recipesStore = useRecipesStore()
 const { fetchRecipeContent, saveRecipe, deleteRecipe, findRecipeImageInfo, saveRecipeImage, deleteRecipeImage } = useGitHub()
 const { parseRecipe, formatIngredient, renderStep, getSummary } = useCooklang()
+const { importing, importError, importFromUrl } = useRecipeImport()
+
+// ── Import depuis URL ──
+const importUrl = ref('')
+const importExpanded = ref(true)
+const importSuccess = ref(false)
+
+async function doImport() {
+  importSuccess.value = false
+  if (content.value.trim() && !confirm('Le contenu actuel sera remplacé par la recette importée. Continuer ?')) {
+    return
+  }
+  const result = await importFromUrl(importUrl.value)
+  if (result) {
+    content.value = result
+    recipeName.value = readTitle(result) ?? ''
+    importExpanded.value = false
+    importSuccess.value = true
+  }
+}
 
 /** Chemin actuel de la recette dans le repo (vide en mode création). */
 const path = computed(() => route.params.path as string)
@@ -1197,5 +1258,128 @@ h3 {
 
 .preview-empty p {
   font-size: 0.85rem;
+}
+
+/* ── Import depuis URL ────────────────────────────────────────────── */
+.import-section {
+  margin-bottom: 1.5rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.import-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  background: var(--color-surface-alt);
+  border: none;
+  border-bottom: 1px solid transparent;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.import-header:hover {
+  background: var(--color-border);
+}
+
+.import-icon {
+  color: var(--color-sage);
+  flex-shrink: 0;
+}
+
+.import-chevron {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  transition: transform var(--transition-fast);
+}
+
+.import-chevron--open {
+  transform: rotate(90deg);
+}
+
+.import-body {
+  padding: 1rem;
+  border-top: 1px solid var(--color-border);
+  animation: slide-in 0.2s ease;
+}
+
+.import-row {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.import-input {
+  flex: 1;
+  padding: 0.55rem 0.85rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.import-input:focus {
+  outline: none;
+  border-color: var(--color-sage);
+  box-shadow: 0 0 0 3px var(--color-sage-light);
+}
+
+.import-input::placeholder {
+  color: var(--color-muted);
+  opacity: 0.6;
+}
+
+.import-btn {
+  white-space: nowrap;
+  gap: 0.4rem;
+}
+
+.import-status {
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.import-error {
+  margin-top: 0.75rem;
+}
+
+.msg--success {
+  background: var(--color-sage-light);
+  border-color: var(--color-sage);
+  color: var(--color-sage);
+}
+
+.loader--sm {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 520px) {
+  .import-row {
+    flex-direction: column;
+  }
 }
 </style>
