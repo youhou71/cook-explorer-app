@@ -32,6 +32,16 @@ import { splitTags } from '@/utils/taxonomies'
 /** Regex des commentaires Cooklang : ligne (--) et bloc ([- ... -]). Retirés avant le parsing. */
 const COMMENT_REGEX = /(--.*)|(\[-(.|\n)+?-\])/g
 
+/** Échappe les caractères HTML dangereux pour prévenir l'injection XSS via v-html. */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export function useCooklang() {
   /**
    * Convertit le frontmatter YAML (--- ... ---) en métadonnées >> key: value
@@ -352,22 +362,26 @@ export function useCooklang() {
   }
 
   /**
-   * Formate les étapes en HTML simple (highlight ingrédients/timers)
+   * Formate les étapes en HTML simple (highlight ingrédients/timers).
+   * Toutes les valeurs utilisateur sont échappées via escapeHtml() pour
+   * prévenir l'injection XSS (le résultat est injecté via v-html).
    */
   function renderStep(step: any): string {
     const items = Array.isArray(step) ? step : step.line ?? []
     return items.map((item: any) => {
-      if (typeof item === 'string') return item.replace(/<<BR>>/g, '<br>')
+      if (typeof item === 'string') return escapeHtml(item).replace(/&lt;&lt;BR&gt;&gt;/g, '<br>')
       if (item.type === 'ingredient') {
-        return `<mark class="ingredient">${item.name}</mark>`
+        return `<mark class="ingredient">${escapeHtml(item.name)}</mark>`
       }
       if (item.type === 'timer') {
         const displayName = item.name && !item.name.startsWith('timer ') ? item.name : ''
-        const label = displayName ? `${displayName} (${item.quantity} ${item.units})` : `${item.quantity} ${item.units}`
+        const label = displayName
+          ? `${escapeHtml(displayName)} (${escapeHtml(String(item.quantity))} ${escapeHtml(item.units)})`
+          : `${escapeHtml(String(item.quantity))} ${escapeHtml(item.units)}`
         return `<span class="timer">⏱ ${label}</span>`
       }
       if (item.type === 'cookware') {
-        return `<span class="cookware">${item.name}</span>`
+        return `<span class="cookware">${escapeHtml(item.name)}</span>`
       }
       return ''
     }).join('')
