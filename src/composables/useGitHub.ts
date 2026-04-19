@@ -20,6 +20,14 @@ import { useGitHubStore } from '@/stores/github'
 import type { RecipeFile, CategorySettings } from '@/types'
 import { buildCategorySettings } from '@/utils/categories'
 
+/** Encode une chaîne UTF-8 en base64 sans utiliser unescape() (déprécié). */
+function utf8ToBase64(str: string): string {
+  const bytes = new TextEncoder().encode(str)
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary)
+}
+
 export function useGitHub() {
   /** Store Pinia contenant la configuration GitHub (token, owner, repo, branch). */
   const store = useGitHubStore()
@@ -119,8 +127,8 @@ export function useGitHub() {
       repo: store.repo,
       path,
       message,
-      // Encodage UTF-8 → base64 (encodeURIComponent + unescape gère les caractères non-ASCII)
-      content: btoa(unescape(encodeURIComponent(content))),
+      // Encodage UTF-8 → base64 via TextEncoder (compatible caractères non-ASCII)
+      content: utf8ToBase64(content),
       branch: store.branch,
       ...(sha ? { sha } : {})
     })

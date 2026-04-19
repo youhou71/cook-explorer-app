@@ -596,6 +596,7 @@ onMounted(async () => {
  *  6. Navigation vers la page de détail de la recette
  */
 async function save() {
+  if (saving.value) return
   saveError.value = null
   const finalPath = targetPath.value
   if (!finalPath) {
