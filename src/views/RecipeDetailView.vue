@@ -1,12 +1,8 @@
 <template>
   <div class="detail-view" :style="{ '--cat-color': catSettings.color, '--cat-color-light': catSettings.colorSecondary }">
-    <div v-if="loading" class="state-msg">
-      <div class="loader"></div>
-      Chargement...
-    </div>
-    <div v-else-if="error" class="state-msg state-msg--error">{{ error }}</div>
+    <LoadingState :loading="loading" :error="error" />
 
-    <template v-else-if="recipe">
+    <template v-if="!loading && !error && recipe">
       <!-- Hero image -->
       <div class="hero" :class="{ 'hero--has-image': imageUrl }">
         <img v-if="imageUrl" :src="imageUrl" :alt="title" class="hero-image" />
@@ -59,7 +55,7 @@
                 v-for="tag in summary.tags"
                 :key="tag"
                 class="tag"
-                :class="'tag--' + recipesStore.getTagColor(tag)"
+                :class="'color-' + recipesStore.getTagColor(tag)"
               >
                 {{ tag }}
               </span>
@@ -148,6 +144,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
+import LoadingState from '@/components/LoadingState.vue'
 import { useRecipesStore } from '@/stores/recipes'
 import { useGitHub } from '@/composables/useGitHub'
 import { useCooklang } from '@/composables/useCooklang'
@@ -309,29 +306,6 @@ async function confirmDelete() {
 </script>
 
 <style scoped>
-/* States */
-.state-msg {
-  color: var(--color-muted);
-  padding: 3rem 0;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.state-msg--error { color: #c0392b; }
-
-.loader {
-  width: 28px;
-  height: 28px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Hero */
 .hero {
@@ -451,41 +425,6 @@ h1 {
   border: 1.5px solid;
 }
 
-.tag--sage {
-  background: var(--color-sage-light);
-  color: var(--color-sage);
-  border-color: var(--color-sage);
-}
-
-.tag--warm {
-  background: var(--color-warm-light);
-  color: var(--color-warm);
-  border-color: var(--color-warm);
-}
-
-.tag--accent {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-.tag--plum {
-  background: var(--color-plum-light);
-  color: var(--color-plum);
-  border-color: var(--color-plum);
-}
-
-.tag--sky {
-  background: var(--color-sky-light);
-  color: var(--color-sky);
-  border-color: var(--color-sky);
-}
-
-.tag--rose {
-  background: var(--color-rose-light);
-  color: var(--color-rose);
-  border-color: var(--color-rose);
-}
 
 /* Servings selector */
 .badge--servings {

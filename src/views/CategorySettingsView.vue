@@ -27,12 +27,9 @@
     </p>
 
     <!-- État de chargement -->
-    <div v-if="loading" class="state-msg">
-      <div class="loader"></div>
-      Chargement...
-    </div>
+    <LoadingState :loading="loading" />
 
-    <div v-else>
+    <div v-if="!loading">
       <!--
         Liste draggable des catégories.
         L'attribut `ref="listEl"` est utilisé par useSortable pour attacher
@@ -144,6 +141,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick, watch } from 'vue'
+import LoadingState from '@/components/LoadingState.vue'
 import { useSortable } from '@vueuse/integrations/useSortable'
 import { useRecipesStore } from '@/stores/recipes'
 import { useGitHub } from '@/composables/useGitHub'
@@ -339,27 +337,6 @@ h1 {
   line-height: 1.6;
 }
 
-/* ── État de chargement ────────────────────────────────────────────────── */
-.state-msg {
-  color: var(--color-muted);
-  padding: 3rem 0;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.loader {
-  width: 28px;
-  height: 28px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Liste draggable des catégories ────────────────────────────────────── */
 .cat-list {

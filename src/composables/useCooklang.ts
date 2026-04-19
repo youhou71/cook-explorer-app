@@ -26,7 +26,7 @@
  */
 
 import { Recipe, Ingredient, Cookware, Timer } from 'cooklang'
-import type { CooklangRecipe, CooklangSection, CooklangStep, CooklangIngredient, CooklangSummary } from '@/types'
+import type { CooklangRecipe, CooklangSection, CooklangStep, CooklangIngredient, CooklangTimer, CooklangCookware, CooklangSummary } from '@/types'
 import { splitTags } from '@/utils/taxonomies'
 
 /** Regex des commentaires Cooklang : ligne (--) et bloc ([- ... -]). Retirés avant le parsing. */
@@ -247,8 +247,7 @@ export function useCooklang() {
     const order: string[] = []
     for (const step of steps) {
       for (const item of step) {
-        if (typeof item === 'string') continue
-        if ((item as any).type !== 'ingredient') continue
+        if (typeof item === 'string' || item.type !== 'ingredient') continue
         const ing = item as CooklangIngredient
         const key = `${(ing.name ?? '').toLowerCase().trim()}|${(ing.units ?? '').toLowerCase().trim()}`
         const existing = map.get(key)
@@ -341,14 +340,14 @@ export function useCooklang() {
   /**
    * Formate les ingrédients pour l'affichage, avec ratio de mise à l'échelle
    */
-  function formatIngredient(ing: any, ratio = 1): string {
+  function formatIngredient(ing: CooklangIngredient, ratio = 1): string {
     if (!ing.quantity && ing.quantity !== 0) return ing.name
     let qty: string
     if (typeof ing.quantity === 'number' && !Number.isNaN(ing.quantity)) {
       qty = formatQty(ing.quantity * ratio)
     } else {
       // Quantité non numérique (ex: "½"), on essaie de parser
-      const parsed = parseFloat(ing.quantity)
+      const parsed = parseFloat(String(ing.quantity))
       if (!Number.isNaN(parsed)) {
         qty = formatQty(parsed * ratio)
       } else {
@@ -366,9 +365,12 @@ export function useCooklang() {
    * Toutes les valeurs utilisateur sont échappées via escapeHtml() pour
    * prévenir l'injection XSS (le résultat est injecté via v-html).
    */
-  function renderStep(step: any): string {
-    const items = Array.isArray(step) ? step : step.line ?? []
-    return items.map((item: any) => {
+  /** Élément individuel d'une étape : texte brut ou composant sémantique. */
+  type StepItem = string | CooklangIngredient | CooklangTimer | CooklangCookware
+
+  function renderStep(step: CooklangStep | { line: StepItem[] }): string {
+    const items: StepItem[] = Array.isArray(step) ? step : step.line ?? []
+    return items.map((item: StepItem) => {
       if (typeof item === 'string') return escapeHtml(item).replace(/&lt;&lt;BR&gt;&gt;/g, '<br>')
       if (item.type === 'ingredient') {
         return `<mark class="ingredient">${escapeHtml(item.name)}</mark>`

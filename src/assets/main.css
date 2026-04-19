@@ -172,6 +172,14 @@ mark.ingredient {
   text-underline-offset: 2px;
 }
 
+/* ── Utilitaires de couleur pour badges et tags (partagés entre les vues) ── */
+.color-sage { background: var(--color-sage-light); color: var(--color-sage); border-color: var(--color-sage); }
+.color-warm { background: var(--color-warm-light); color: var(--color-warm); border-color: var(--color-warm); }
+.color-accent { background: var(--color-accent-light); color: var(--color-accent); border-color: var(--color-accent); }
+.color-plum { background: var(--color-plum-light); color: var(--color-plum); border-color: var(--color-plum); }
+.color-sky { background: var(--color-sky-light); color: var(--color-sky); border-color: var(--color-sky); }
+.color-rose { background: var(--color-rose-light); color: var(--color-rose); border-color: var(--color-rose); }
+
 /* ───────────────────────── IMPRESSION (A4 portrait) ───────────────────────── */
 @media print {
   @page {

@@ -154,7 +154,7 @@ export function useGitHub() {
       ...(sha ? { sha } : {})
     })
 
-    return (data.content as any).sha
+    return data.content!.sha!
   }
 
   /**
@@ -321,7 +321,7 @@ export function useGitHub() {
 
     return {
       path: imagePath,
-      sha: (data.content as any).sha,
+      sha: data.content!.sha!,
       dataUri: `data:${mimeFromExt(imagePath)};base64,${base64}`
     }
   }

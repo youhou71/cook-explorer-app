@@ -205,25 +205,25 @@ Faire revenir @oignons{2} dans @huile d'olive{2%cl} pendant ~{10%min}."
           </div>
 
           <div v-if="previewSummary" class="preview-badges">
-            <span v-if="previewSummary.servings" class="preview-badge preview-badge--sage">
+            <span v-if="previewSummary.servings" class="preview-badge color-sage">
               👥 {{ previewSummary.servings }}
             </span>
-            <span v-if="previewSummary.prepTime" class="preview-badge preview-badge--warm">
+            <span v-if="previewSummary.prepTime" class="preview-badge color-warm">
               🥘 Prépa {{ previewSummary.prepTime }}
             </span>
-            <span v-if="previewSummary.cookTime" class="preview-badge preview-badge--accent">
+            <span v-if="previewSummary.cookTime" class="preview-badge color-accent">
               🔥 Cuisson {{ previewSummary.cookTime }}
             </span>
             <span v-if="previewSummary.totalTime" class="preview-badge preview-badge--muted">
               ⏱ Total {{ previewSummary.totalTime }}
             </span>
-            <span v-if="previewSummary.origin" class="preview-badge preview-badge--plum">
+            <span v-if="previewSummary.origin" class="preview-badge color-plum">
               {{ getOriginMeta(previewSummary.origin).flag }} {{ getOriginMeta(previewSummary.origin).label }}
             </span>
             <span
               v-for="s in previewSummary.seasons"
               :key="s"
-              class="preview-badge preview-badge--sky"
+              class="preview-badge color-sky"
             >
               {{ getSeasonMeta(s).icon }} {{ getSeasonMeta(s).label }}
             </span>
@@ -234,7 +234,7 @@ Faire revenir @oignons{2} dans @huile d'olive{2%cl} pendant ~{10%min}."
               v-for="tag in previewSummary.tags"
               :key="tag"
               class="preview-tag"
-              :class="'preview-tag--' + recipesStore.getTagColor(tag)"
+              :class="'color-' + recipesStore.getTagColor(tag)"
             >{{ tag }}</span>
           </div>
 
@@ -1131,12 +1131,7 @@ label, .editor-label {
   font-weight: 500;
 }
 
-.preview-badge--sage { background: var(--color-sage-light); color: var(--color-sage); }
-.preview-badge--warm { background: var(--color-warm-light); color: var(--color-warm); }
-.preview-badge--accent { background: var(--color-accent-light); color: var(--color-accent); }
 .preview-badge--muted { background: var(--color-surface-alt); color: var(--color-muted); }
-.preview-badge--plum { background: var(--color-plum-light); color: var(--color-plum); }
-.preview-badge--sky { background: var(--color-sky-light); color: var(--color-sky); }
 
 /* Preview tags */
 .preview-tags {
@@ -1155,12 +1150,6 @@ label, .editor-label {
   border-radius: 99px;
 }
 
-.preview-tag--sage { background: var(--color-sage-light); color: var(--color-sage); }
-.preview-tag--warm { background: var(--color-warm-light); color: var(--color-warm); }
-.preview-tag--accent { background: var(--color-accent-light); color: var(--color-accent); }
-.preview-tag--plum { background: var(--color-plum-light); color: var(--color-plum); }
-.preview-tag--sky { background: var(--color-sky-light); color: var(--color-sky); }
-.preview-tag--rose { background: var(--color-rose-light); color: var(--color-rose); }
 
 /* Preview notes */
 .preview-notes {

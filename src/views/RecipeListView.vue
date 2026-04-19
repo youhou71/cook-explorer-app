@@ -66,7 +66,7 @@
                 :key="s"
                 type="button"
                 class="tag-filter"
-                :class="{ 'tag-filter--active tag-filter--sky': activeSeasons.includes(s) }"
+                :class="{ 'tag-filter--active color-sky': activeSeasons.includes(s) }"
                 @click="toggleSeasonFilter(s)"
               >
                 {{ getSeasonMeta(s).icon }} {{ getSeasonMeta(s).label }}
@@ -101,7 +101,7 @@
                 class="tag-filter"
                 :class="[
                   activeTags.includes(tag)
-                    ? 'tag-filter--active tag-filter--' + recipes.getTagColor(tag)
+                    ? 'tag-filter--active color-' + recipes.getTagColor(tag)
                     : ''
                 ]"
                 @click="toggleTag(tag)"
@@ -129,17 +129,13 @@
       </div>
     </div>
 
-    <div v-if="loading" class="state-msg">
-      <div class="loader"></div>
-      Chargement depuis GitHub...
-    </div>
-    <div v-else-if="error" class="state-msg state-msg--error">{{ error }}</div>
+    <LoadingState :loading="loading" :error="error" />
 
-    <div v-else-if="filtered.length === 0" class="state-msg">
+    <div v-if="!loading && !error && filtered.length === 0" class="state-msg">
       {{ recipes.recipes.length === 0 ? 'Aucune recette trouvée dans le repo.' : 'Aucun résultat.' }}
     </div>
 
-    <div v-else class="recipe-grid">
+    <div v-if="!loading && !error && filtered.length > 0" class="recipe-grid">
       <RouterLink
         v-for="r in filtered"
         :key="r.path"
@@ -184,7 +180,7 @@
               v-for="tag in recipeTags[r.path]"
               :key="tag"
               class="card-tag"
-              :class="'card-tag--' + recipes.getTagColor(tag)"
+              :class="'color-' + recipes.getTagColor(tag)"
             >{{ tag }}</span>
           </div>
         </div>
@@ -204,11 +200,13 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import LoadingState from '@/components/LoadingState.vue'
 import { useRecipesStore } from '@/stores/recipes'
 import { useGitHub } from '@/composables/useGitHub'
 import { useCooklang } from '@/composables/useCooklang'
 import { compareCategories, getCategory } from '@/utils/categories'
 import { ORIGIN_COUNTRIES, SEASONS, getOriginMeta, getSeasonMeta } from '@/utils/taxonomies'
+import type { CooklangSummary, CooklangRecipe } from '@/types'
 
 /** Store Pinia central (recettes, tags, catégories). */
 const recipes = useRecipesStore()
@@ -430,7 +428,7 @@ function formatMinutes(total: number): string {
 }
 
 /** Retourne le temps total affichable : total explicite OU prep+cook, sinon fallback sur une seule valeur */
-function computeTotalTime(summary: any): string {
+function computeTotalTime(summary: CooklangSummary): string {
   if (summary.totalTime) {
     const parsed = parseDuration(summary.totalTime)
     return parsed ? formatMinutes(parsed.minutes) : String(summary.totalTime)
@@ -444,7 +442,7 @@ function computeTotalTime(summary: any): string {
 }
 
 /** Retourne la durée totale en minutes (0 si non calculable), pour filtrage numérique */
-function computeTotalMinutes(summary: any): number {
+function computeTotalMinutes(summary: CooklangSummary): number {
   if (summary.totalTime) {
     const parsed = parseDuration(summary.totalTime)
     if (parsed) return parsed.minutes
@@ -465,7 +463,7 @@ function toTimestamp(iso: string | undefined): number {
 }
 
 /** Extrait titre + tags + temps total depuis un parsed recipe */
-function extractMeta(path: string, name: string, parsed: any) {
+function extractMeta(path: string, name: string, parsed: CooklangRecipe) {
   const summary = getSummary(parsed)
   titles[path] = summary.title || name
   recipeTags[path] = summary.tags || []
@@ -823,36 +821,13 @@ h1 {
   color: var(--color-sage);
 }
 
-.tag-filter--sage { background: var(--color-sage-light); border-color: var(--color-sage); color: var(--color-sage); }
-.tag-filter--warm { background: var(--color-warm-light); border-color: var(--color-warm); color: var(--color-warm); }
-.tag-filter--accent { background: var(--color-accent-light); border-color: var(--color-accent); color: var(--color-accent); }
-.tag-filter--plum { background: var(--color-plum-light); border-color: var(--color-plum); color: var(--color-plum); }
-.tag-filter--sky { background: var(--color-sky-light); border-color: var(--color-sky); color: var(--color-sky); }
-.tag-filter--rose { background: var(--color-rose-light); border-color: var(--color-rose); color: var(--color-rose); }
 
-/* States */
+/* État vide (pas de résultats) */
 .state-msg {
   color: var(--color-muted);
   padding: 3rem 0;
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
 }
-
-.state-msg--error { color: #c0392b; }
-
-.loader {
-  width: 28px;
-  height: 28px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Grid */
 .recipe-grid {
@@ -996,12 +971,6 @@ h1 {
   line-height: 1.35;
 }
 
-.card-tag--sage { background: var(--color-sage-light); color: var(--color-sage); }
-.card-tag--warm { background: var(--color-warm-light); color: var(--color-warm); }
-.card-tag--accent { background: var(--color-accent-light); color: var(--color-accent); }
-.card-tag--plum { background: var(--color-plum-light); color: var(--color-plum); }
-.card-tag--sky { background: var(--color-sky-light); color: var(--color-sky); }
-.card-tag--rose { background: var(--color-rose-light); color: var(--color-rose); }
 
 /* === Mobile : layout horizontal compact (image à gauche, infos à droite) === */
 @media (max-width: 640px) {
