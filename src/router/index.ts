@@ -51,6 +51,12 @@ const router = createRouter({
       meta: { requiresConfig: true }
     },
     {
+      path: '/mealplan',
+      name: 'mealplan',
+      component: () => import('@/views/MealPlanView.vue'),
+      meta: { requiresConfig: true }
+    },
+    {
       path: '/recipes',
       name: 'recipes',
       component: () => import('@/views/RecipeListView.vue'),

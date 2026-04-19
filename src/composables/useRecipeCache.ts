@@ -21,7 +21,7 @@
  */
 
 import { openDB, type IDBPDatabase } from 'idb'
-import type { CategorySettings } from '@/types'
+import type { CategorySettings, IngredientAisleMapping, MealPlan } from '@/types'
 
 /** Nom de la base IndexedDB */
 const DB_NAME = 'cookexplorer-cache'
@@ -31,7 +31,7 @@ const DB_NAME = 'cookexplorer-cache'
  * Historique : v1 = recipes, v2 = +tags, v3 = +categories.
  * Bumper ce numéro à chaque ajout/modification de store.
  */
-const DB_VERSION = 3
+const DB_VERSION = 5
 
 /**
  * Structure d'une recette en cache IndexedDB.
@@ -95,6 +95,14 @@ function getDb() {
         if (!db.objectStoreNames.contains('categories')) {
           db.createObjectStore('categories', { keyPath: 'folder' })
         }
+        // Store des plannings de repas (v4+)
+        if (!db.objectStoreNames.contains('mealplans')) {
+          db.createObjectStore('mealplans', { keyPath: 'weekStart' })
+        }
+        // Store des associations ingrédient → rayon (v5+)
+        if (!db.objectStoreNames.contains('ingredientAisles')) {
+          db.createObjectStore('ingredientAisles', { keyPath: 'ingredient' })
+        }
       }
     })
   }
@@ -102,7 +110,7 @@ function getDb() {
 }
 
 /**
- * Composable fournissant les opérations CRUD sur les trois stores IndexedDB.
+ * Composable fournissant les opérations CRUD sur les quatre stores IndexedDB.
  * Chaque méthode ouvre une transaction, effectue l'opération et attend sa complétion.
  */
 export function useRecipeCache() {
@@ -267,12 +275,60 @@ export function useRecipeCache() {
     await db.clear('categories')
   }
 
+  // ── Meal Plans ────────────────────────────────────────────────────────────
+
+  /** Lit un planning de repas par la date de début de semaine. */
+  async function getMealPlan(weekStart: string): Promise<MealPlan | undefined> {
+    const db = await getDb()
+    return db.get('mealplans', weekStart)
+  }
+
+  /** Écrit ou met à jour un planning de repas. */
+  async function putMealPlan(plan: MealPlan) {
+    const db = await getDb()
+    await db.put('mealplans', plan)
+  }
+
+  /** Supprime un planning de repas. */
+  async function deleteMealPlan(weekStart: string) {
+    const db = await getDb()
+    await db.delete('mealplans', weekStart)
+  }
+
+  // ── Ingredient Aisles ──────────────────────────────────────────────────
+
+  /** Lit toutes les associations ingrédient → rayon. */
+  async function getAllIngredientAisles(): Promise<IngredientAisleMapping[]> {
+    const db = await getDb()
+    return db.getAll('ingredientAisles')
+  }
+
+  /** Écrit ou met à jour une association ingrédient → rayon. */
+  async function putIngredientAisle(mapping: IngredientAisleMapping) {
+    const db = await getDb()
+    await db.put('ingredientAisles', mapping)
+  }
+
+  /** Écrit plusieurs associations en une seule transaction. */
+  async function putManyIngredientAisles(mappings: IngredientAisleMapping[]) {
+    const db = await getDb()
+    const tx = db.transaction('ingredientAisles', 'readwrite')
+    for (const m of mappings) {
+      await tx.store.put(m)
+    }
+    await tx.done
+  }
+
   return {
     // Recipes
     getAllRecipes, getRecipe, putRecipe, putMany, deleteRecipe, clearAll,
     // Tags
     getAllTags, syncTags,
     // Categories
-    getAllCategories, putManyCategories, clearCategories
+    getAllCategories, putManyCategories, clearCategories,
+    // Meal Plans
+    getMealPlan, putMealPlan, deleteMealPlan,
+    // Ingredient Aisles
+    getAllIngredientAisles, putIngredientAisle, putManyIngredientAisles
   }
 }

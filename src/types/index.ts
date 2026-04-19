@@ -191,6 +191,54 @@ export interface RecipeDirectory {
  * `utils/categories.ts → buildCategorySettings()`, ce qui permet à l'app de
  * fonctionner même sans aucun fichier `.category.json` dans le repo.
  */
+// ────────────────────────────────────────────────────────────────────────────
+// 4. Types Planification de repas
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Un créneau de repas dans le planning hebdomadaire.
+ * Associe une recette à un jour et un moment de la journée.
+ */
+export interface MealSlot {
+  /** Jour de la semaine (0 = lundi, 6 = dimanche) */
+  day: number
+  /** Créneau horaire : 'lunch' (déjeuner) ou 'dinner' (dîner) */
+  slot: 'lunch' | 'dinner'
+  /** Chemin de la recette dans le repo (clé de jointure avec RecipeFile.path) */
+  recipePath: string
+  /** Nombre de portions souhaitées pour ce repas (par défaut = portions de la recette) */
+  servings: number
+  /** Nombre de jours couverts par ce repas (1 = jour unique, 2+ = étalé sur plusieurs jours) */
+  span: number
+}
+
+/**
+ * Planning de repas pour une semaine donnée.
+ * Stocké en IndexedDB avec `weekStart` comme clé primaire.
+ */
+export interface MealPlan {
+  /** Date ISO du lundi de la semaine (YYYY-MM-DD), sert de clé primaire */
+  weekStart: string
+  /** Liste des repas assignés dans la semaine */
+  meals: MealSlot[]
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 5. Type CategorySettings
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Association ingrédient → rayon de supermarché, stockée en IndexedDB.
+ * Permet à l'utilisateur de personnaliser le classement des ingrédients
+ * dans la liste de courses.
+ */
+export interface IngredientAisleMapping {
+  /** Nom normalisé de l'ingrédient (singulier, minuscule). Clé primaire. */
+  ingredient: string
+  /** Identifiant du rayon (ex : 'fruits-legumes', 'cremerie'). */
+  aisleId: string
+}
+
 export interface CategorySettings {
   /** Nom du dossier dans le repo (clé primaire). Ex : "plats", "desserts". */
   folder: string
