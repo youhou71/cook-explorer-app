@@ -271,10 +271,10 @@ onMounted(async () => {
     // Initialiser le compteur de portions
     servings.value = getBaseServings(parsed.value!)
 
-    // Résolution de l'image hero (cascade de fallbacks)
-    const cachedEntry = await recipesStore.getCached(path.value)
-    if (cachedEntry?.image) {
-      imageUrl.value = cachedEntry.image
+    // Résolution de l'image hero (cascade : cache images dédié → métadonnée → GitHub)
+    const cachedImage = await recipesStore.getCachedImage(path.value)
+    if (cachedImage) {
+      imageUrl.value = cachedImage
     } else if (parsed.value?.metadata?.image) {
       imageUrl.value = parsed.value.metadata.image
       recipesStore.cacheImage(path.value, parsed.value.metadata.image)

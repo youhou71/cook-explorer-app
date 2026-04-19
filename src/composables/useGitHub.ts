@@ -28,6 +28,27 @@ function utf8ToBase64(str: string): string {
   return btoa(binary)
 }
 
+/**
+ * Réessaie une opération async jusqu'à `maxRetries` fois sur erreur transitoire.
+ * Backoff exponentiel : 500ms, 1s, 2s. Ne retente que sur les erreurs réseau,
+ * les 5xx et les 429 (rate limit) — les 4xx client sont propagées immédiatement.
+ */
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
+  let lastError: unknown
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (err: any) {
+      lastError = err
+      const status = err?.status ?? err?.response?.status
+      const isTransient = !status || status >= 500 || status === 429
+      if (!isTransient || attempt === maxRetries) throw err
+      await new Promise(r => setTimeout(r, 500 * 2 ** attempt))
+    }
+  }
+  throw lastError
+}
+
 export function useGitHub() {
   /** Store Pinia contenant la configuration GitHub (token, owner, repo, branch). */
   const store = useGitHubStore()
@@ -63,12 +84,12 @@ export function useGitHub() {
   async function fetchRecipeList(): Promise<RecipeFile[]> {
     if (!octokit.value) throw new Error('GitHub non configuré')
 
-    const { data } = await octokit.value.rest.git.getTree({
+    const { data } = await withRetry(() => octokit.value!.rest.git.getTree({
       owner: store.owner,
       repo: store.repo,
       tree_sha: store.branch,
       recursive: '1'
-    })
+    }))
 
     return data.tree
       .filter(item => item.type === 'blob' && item.path?.endsWith('.cook'))
@@ -89,12 +110,12 @@ export function useGitHub() {
   async function fetchRecipeContent(path: string): Promise<{ content: string; sha: string }> {
     if (!octokit.value) throw new Error('GitHub non configuré')
 
-    const { data } = await octokit.value.rest.repos.getContent({
+    const { data } = await withRetry(() => octokit.value!.rest.repos.getContent({
       owner: store.owner,
       repo: store.repo,
       path,
       ref: store.branch
-    })
+    }))
 
     if (Array.isArray(data) || data.type !== 'file') {
       throw new Error('Chemin invalide')
@@ -340,12 +361,12 @@ export function useGitHub() {
     if (!octokit.value) throw new Error('GitHub non configuré')
 
     // Récupérer l'arbre complet du repo en un seul appel API
-    const { data } = await octokit.value.rest.git.getTree({
+    const { data } = await withRetry(() => octokit.value!.rest.git.getTree({
       owner: store.owner,
       repo: store.repo,
       tree_sha: store.branch,
       recursive: '1'
-    })
+    }))
 
     // Filtrer les .category.json situés exactement un niveau sous la racine
     // (path.split('/').length === 2 → "dossier/.category.json")

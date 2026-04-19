@@ -31,7 +31,7 @@ const DB_NAME = 'cookexplorer-cache'
  * Historique : v1 = recipes, v2 = +tags, v3 = +categories.
  * Bumper ce numéro à chaque ajout/modification de store.
  */
-const DB_VERSION = 5
+const DB_VERSION = 6
 
 /**
  * Structure d'une recette en cache IndexedDB.
@@ -49,8 +49,6 @@ interface CachedRecipe {
   content?: string
   /** CooklangRecipe sérialisé en JSON (évite de re-parser au chargement) */
   parsedJson?: string
-  /** Image associée encodée en data URI (base64), null si aucune image */
-  image?: string | null
   /** Titre extrait du frontmatter (pour affichage rapide en liste) */
   title?: string
   /** Timestamp de dernière écriture en cache (Date.now()) */
@@ -103,6 +101,10 @@ function getDb() {
         if (!db.objectStoreNames.contains('ingredientAisles')) {
           db.createObjectStore('ingredientAisles', { keyPath: 'ingredient' })
         }
+        // Store des images séparé pour ne pas charger les data URIs avec les recettes (v6+)
+        if (!db.objectStoreNames.contains('images')) {
+          db.createObjectStore('images', { keyPath: 'path' })
+        }
       }
     })
   }
@@ -143,7 +145,6 @@ export function useRecipeCache() {
       sha: data.sha ?? existing?.sha ?? '',
       content: data.content ?? existing?.content,
       parsedJson: data.parsedJson ?? existing?.parsedJson,
-      image: data.image !== undefined ? data.image : existing?.image,
       title: data.title ?? existing?.title,
       updatedAt: Date.now()
     }
@@ -166,7 +167,6 @@ export function useRecipeCache() {
         sha: item.sha ?? existing?.sha ?? '',
         content: item.content ?? existing?.content,
         parsedJson: item.parsedJson ?? existing?.parsedJson,
-        image: item.image !== undefined ? item.image : existing?.image,
         title: item.title ?? existing?.title,
         updatedAt: Date.now()
       }
@@ -319,6 +319,31 @@ export function useRecipeCache() {
     await tx.done
   }
 
+  // ── Images (store séparé pour éviter de charger les data URIs avec les recettes) ──
+
+  /** Lit le data URI d'une image en cache par le path de la recette associée. */
+  async function getImage(path: string): Promise<string | null> {
+    const db = await getDb()
+    const entry = await db.get('images', path)
+    return entry?.dataUri ?? null
+  }
+
+  /** Écrit ou supprime le data URI d'une image en cache. */
+  async function putImage(path: string, dataUri: string | null) {
+    const db = await getDb()
+    if (dataUri === null) {
+      await db.delete('images', path)
+    } else {
+      await db.put('images', { path, dataUri, updatedAt: Date.now() })
+    }
+  }
+
+  /** Supprime une image du cache. */
+  async function deleteImage(path: string) {
+    const db = await getDb()
+    await db.delete('images', path)
+  }
+
   return {
     // Recipes
     getAllRecipes, getRecipe, putRecipe, putMany, deleteRecipe, clearAll,
@@ -329,6 +354,8 @@ export function useRecipeCache() {
     // Meal Plans
     getMealPlan, putMealPlan, deleteMealPlan,
     // Ingredient Aisles
-    getAllIngredientAisles, putIngredientAisle, putManyIngredientAisles
+    getAllIngredientAisles, putIngredientAisle, putManyIngredientAisles,
+    // Images
+    getImage, putImage, deleteImage
   }
 }

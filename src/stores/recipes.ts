@@ -166,9 +166,14 @@ export const useRecipesStore = defineStore('recipes', () => {
 
   // ── Cache images et titres ───────────────────────────────────────────────
 
-  /** Stocke un data URI d'image dans le cache IndexedDB pour une recette. */
+  /** Stocke un data URI d'image dans le store IndexedDB dédié aux images. */
   function cacheImage(path: string, dataUri: string | null) {
-    cache.putRecipe({ path, image: dataUri })
+    cache.putImage(path, dataUri)
+  }
+
+  /** Lit le data URI d'une image depuis le store IndexedDB dédié. */
+  async function getCachedImage(path: string): Promise<string | null> {
+    return cache.getImage(path)
   }
 
   /** Stocke le titre d'une recette dans le cache IndexedDB (pour affichage rapide en liste). */
@@ -219,7 +224,7 @@ export const useRecipesStore = defineStore('recipes', () => {
     categorySettings, categoryMap,
     // Actions
     hydrate, setRecipes, upsertRecipe, removeRecipe, getByPath,
-    cacheImage, cacheTitle, getCached, getAllCached,
+    cacheImage, getCachedImage, cacheTitle, getCached, getAllCached,
     syncTags, getTagColor,
     getCategorySettings, setCategorySettings
   }

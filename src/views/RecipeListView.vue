@@ -379,14 +379,14 @@ const filtered = computed(() => {
     })
 })
 
-/** Charge les images : d'abord le cache IndexedDB, puis GitHub si absent */
+/** Charge les images : d'abord le cache IndexedDB (store dédié), puis GitHub si absent */
 async function loadImages(list: { path: string }[]) {
   for (const r of list) {
     if (r.path in images) continue
-    // Tenter le cache
-    const cached = await recipes.getCached(r.path)
-    if (cached?.image) {
-      images[r.path] = cached.image
+    // Tenter le cache images dédié
+    const cachedImage = await recipes.getCachedImage(r.path)
+    if (cachedImage) {
+      images[r.path] = cachedImage
       continue
     }
     // Sinon charger depuis GitHub et cacher
