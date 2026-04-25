@@ -192,35 +192,67 @@ export interface RecipeDirectory {
  * fonctionner même sans aucun fichier `.category.json` dans le repo.
  */
 // ────────────────────────────────────────────────────────────────────────────
-// 4. Types Planification de repas
+// 4. Types Calendrier de planification de repas
 // ────────────────────────────────────────────────────────────────────────────
 
+/** Identifiant du groupe au sein d'un repas (entrée, plat, dessert). */
+export type MealGroupId = 'entree' | 'plat' | 'dessert'
+
+/** Créneau horaire d'un repas. */
+export type MealTimeSlot = 'lunch' | 'dinner'
+
 /**
- * Un créneau de repas dans le planning hebdomadaire.
- * Associe une recette à un jour et un moment de la journée.
+ * Une recette placée dans un groupe de repas sur le calendrier.
+ * Identifiée par un UUID pour permettre la même recette plusieurs fois.
  */
-export interface MealSlot {
-  /** Jour de la semaine (0 = lundi, 6 = dimanche) */
-  day: number
-  /** Créneau horaire : 'lunch' (déjeuner) ou 'dinner' (dîner) */
-  slot: 'lunch' | 'dinner'
-  /** Chemin de la recette dans le repo (clé de jointure avec RecipeFile.path) */
+export interface CalendarRecipeEntry {
+  /** Identifiant unique de l'entrée (crypto.randomUUID()). */
+  id: string
+  /** Chemin de la recette dans le repo (jointure avec RecipeFile.path). */
   recipePath: string
-  /** Nombre de portions souhaitées pour ce repas (par défaut = portions de la recette) */
-  servings: number
-  /** Nombre de jours couverts par ce repas (1 = jour unique, 2+ = étalé sur plusieurs jours) */
+  /** Date ISO du premier jour (YYYY-MM-DD). */
+  startDate: string
+  /** Nombre de jours couverts (1 = jour unique, 2+ = étalé). */
   span: number
+  /** Nombre total de portions pour cette instance de recette. */
+  totalPortions: number
 }
 
 /**
- * Planning de repas pour une semaine donnée.
- * Stocké en IndexedDB avec `weekStart` comme clé primaire.
+ * Un groupe (entrée, plat ou dessert) au sein d'un repas pour un jour donné.
  */
-export interface MealPlan {
-  /** Date ISO du lundi de la semaine (YYYY-MM-DD), sert de clé primaire */
-  weekStart: string
-  /** Liste des repas assignés dans la semaine */
-  meals: MealSlot[]
+export interface CalendarMealGroup {
+  /** Identifiant du groupe. */
+  groupId: MealGroupId
+  /** Recettes assignées à ce groupe, dans l'ordre d'ajout. */
+  entries: CalendarRecipeEntry[]
+}
+
+/**
+ * Un repas complet (déjeuner ou dîner) pour un jour donné.
+ */
+export interface CalendarMeal {
+  /** Date ISO (YYYY-MM-DD). */
+  date: string
+  /** Créneau horaire. */
+  slot: MealTimeSlot
+  /** Les trois groupes de recettes. */
+  groups: CalendarMealGroup[]
+}
+
+/**
+ * Planning de repas pour un mois.
+ * Stocké en IndexedDB avec `periodKey` comme clé primaire.
+ */
+export interface CalendarPlan {
+  /** Clé de période mensuelle : "2026-04". */
+  periodKey: string
+  /** Objectif de portions par groupe par repas. */
+  targetPortions: number
+  /** Tous les repas du mois. */
+  meals: CalendarMeal[]
+  /** Timestamp de dernière modification. */
+  updatedAt: number
 }
 
 // ────────────────────────────────────────────────────────────────────────────

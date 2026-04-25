@@ -21,7 +21,7 @@
  */
 
 import { openDB, type IDBPDatabase } from 'idb'
-import type { CategorySettings, IngredientAisleMapping, MealPlan } from '@/types'
+import type { CategorySettings, IngredientAisleMapping, CalendarPlan } from '@/types'
 
 /** Nom de la base IndexedDB */
 const DB_NAME = 'cookexplorer-cache'
@@ -31,7 +31,7 @@ const DB_NAME = 'cookexplorer-cache'
  * Historique : v1 = recipes, v2 = +tags, v3 = +categories.
  * Bumper ce numéro à chaque ajout/modification de store.
  */
-const DB_VERSION = 6
+const DB_VERSION = 7
 
 /**
  * Structure d'une recette en cache IndexedDB.
@@ -104,6 +104,10 @@ function getDb() {
         // Store des images séparé pour ne pas charger les data URIs avec les recettes (v6+)
         if (!db.objectStoreNames.contains('images')) {
           db.createObjectStore('images', { keyPath: 'path' })
+        }
+        // Store des plannings calendrier v2 (v7+)
+        if (!db.objectStoreNames.contains('calendarPlans')) {
+          db.createObjectStore('calendarPlans', { keyPath: 'periodKey' })
         }
       }
     })
@@ -275,24 +279,35 @@ export function useRecipeCache() {
     await db.clear('categories')
   }
 
-  // ── Meal Plans ────────────────────────────────────────────────────────────
+  // ── Calendar Plans (v2) ───────────────────────────────────────────────────
 
-  /** Lit un planning de repas par la date de début de semaine. */
-  async function getMealPlan(weekStart: string): Promise<MealPlan | undefined> {
+  /** Lit un planning calendrier par sa clé de période (ex : "2026-04"). */
+  async function getCalendarPlan(periodKey: string): Promise<CalendarPlan | undefined> {
     const db = await getDb()
-    return db.get('mealplans', weekStart)
+    return db.get('calendarPlans', periodKey)
   }
 
-  /** Écrit ou met à jour un planning de repas. */
-  async function putMealPlan(plan: MealPlan) {
+  /** Charge plusieurs plans calendrier par leurs clés de période. */
+  async function getCalendarPlansForKeys(keys: string[]): Promise<CalendarPlan[]> {
     const db = await getDb()
-    await db.put('mealplans', plan)
+    const results: CalendarPlan[] = []
+    for (const key of keys) {
+      const plan = await db.get('calendarPlans', key)
+      if (plan) results.push(plan)
+    }
+    return results
   }
 
-  /** Supprime un planning de repas. */
-  async function deleteMealPlan(weekStart: string) {
+  /** Écrit ou met à jour un planning calendrier. */
+  async function putCalendarPlan(plan: CalendarPlan) {
     const db = await getDb()
-    await db.delete('mealplans', weekStart)
+    await db.put('calendarPlans', plan)
+  }
+
+  /** Supprime un planning calendrier. */
+  async function deleteCalendarPlan(periodKey: string) {
+    const db = await getDb()
+    await db.delete('calendarPlans', periodKey)
   }
 
   // ── Ingredient Aisles ──────────────────────────────────────────────────
@@ -351,8 +366,8 @@ export function useRecipeCache() {
     getAllTags, syncTags,
     // Categories
     getAllCategories, putManyCategories, clearCategories,
-    // Meal Plans
-    getMealPlan, putMealPlan, deleteMealPlan,
+    // Calendar Plans
+    getCalendarPlan, getCalendarPlansForKeys, putCalendarPlan, deleteCalendarPlan,
     // Ingredient Aisles
     getAllIngredientAisles, putIngredientAisle, putManyIngredientAisles,
     // Images

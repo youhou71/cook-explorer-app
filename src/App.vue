@@ -36,7 +36,7 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.97 0-9-2.69-9-6 0-3.05 2.85-5.43 4.4-6.72L9 8l1.2-3.6a1 1 0 0 1 1.8.08L13 8l1.6 1.28C16.15 10.57 21 12.95 21 16c0 3.31-4.03 6-9 6z"/><path d="M12 22c-1.66 0-3-1.12-3-2.5S10.34 15 12 15s3 3.12 3 4.5-1.34 2.5-3 2.5z"/></svg>
             <span class="cooking-label">Mode cuisine</span>
           </button>
-          <RouterLink v-if="github.isConfigured" to="/mealplan" class="nav-link nav-link--icon" title="Planifier les repas">
+          <RouterLink v-if="github.isConfigured" to="/calendar" class="nav-link nav-link--icon" title="Planifier les repas">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           </RouterLink>
           <RouterLink v-if="github.isConfigured" to="/categories" class="nav-link nav-link--icon" title="Types de plats">
@@ -49,7 +49,7 @@
       </nav>
     </header>
 
-    <main class="app-main">
+    <main class="app-main" :class="{ 'app-main--wide': isWideRoute }">
       <RouterView v-slot="{ Component }">
         <Transition name="page" mode="out-in">
           <component :is="Component" />
@@ -73,6 +73,7 @@ const { isSupported: wakeLockSupported, isActive: wakeLockActive, toggle: toggle
 
 const route = useRoute()
 const isRecipeDetail = computed(() => route.name === 'recipe-detail')
+const isWideRoute = computed(() => route.name === 'calendar')
 
 /** Flag d'animation de la barre de progression (true = en cours de navigation). */
 const navigating = ref(false)
@@ -303,6 +304,10 @@ router.afterEach(() => {
   max-width: 960px;
   margin: 0 auto;
   padding: 2rem 1.5rem 4rem;
+}
+
+.app-main--wide {
+  max-width: 1400px;
 }
 
 /* ── Impression : masquer la chrome de l'app ── */
