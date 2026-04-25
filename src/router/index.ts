@@ -51,9 +51,9 @@ const router = createRouter({
       meta: { requiresConfig: true }
     },
     {
-      path: '/mealplan',
-      name: 'mealplan',
-      component: () => import('@/views/MealPlanView.vue'),
+      path: '/calendar',
+      name: 'calendar',
+      component: () => import('@/views/CalendarPlanView.vue'),
       meta: { requiresConfig: true }
     },
     {
